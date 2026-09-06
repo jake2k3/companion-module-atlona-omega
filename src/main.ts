@@ -1,4 +1,12 @@
-import { InstanceBase, InstanceStatus, TelnetHelper, type SomeCompanionConfigField } from '@companion-module/base'
+import {
+	InstanceBase,
+	InstanceStatus,
+	TelnetHelper,
+	type CompanionActionDefinitions,
+	type CompanionActionSchema,
+	type CompanionOptionValues,
+	type SomeCompanionConfigField,
+} from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig, type ModuleSecrets } from './config.js'
 import { UpdateVariableDefinitions, type VariablesSchema } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
@@ -56,6 +64,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	async configUpdated(config: ModuleConfig, secrets: ModuleSecrets): Promise<void> {
 		this.config = config
 		this.secrets = secrets
+		this.updateActions()
 		this.initConnection()
 	}
 
@@ -450,6 +459,12 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 	updateActions(): void {
 		UpdateActions(this)
+	}
+
+	setModelActionDefinitions<TActions extends Record<string, CompanionActionSchema<CompanionOptionValues>>>(
+		actions: CompanionActionDefinitions<TActions>,
+	): void {
+		this.setActionDefinitions(actions as unknown as CompanionActionDefinitions<ActionsSchema>)
 	}
 
 	updateFeedbacks(): void {

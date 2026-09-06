@@ -76,6 +76,20 @@ export function UpdatePresets(self: ModuleInstance): void {
 				},
 			],
 		},
+
+		{
+			id: 'ome-sw32',
+			name: 'AT-OME-SW32',
+			definitions: [
+				{
+					id: 'power',
+					name: 'Power & Debugging Tools',
+					description: 'System commands and tools for troubleshooting',
+					type: 'simple',
+					presets: ['blink', 'pwon', 'pwoff'],
+				},
+			],
+		},
 	]
 
 	const presets: CompanionPresetDefinitions<ModuleSchema> = {}
