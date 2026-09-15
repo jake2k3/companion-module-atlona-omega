@@ -11,6 +11,7 @@ export type ActionsSchema = {
 	RS232zone: { options: { command: string; lineEnding: '\x0D' | '\x0A' | '\x0D\x0A' } }
 	unlock: { options: Record<string, never> }
 	VOUTMute: { options: { output: '1' | '2'; mode: 'on' | 'off' } }
+	xYAVxZ: { options: { input: '1' | '2' | '3'; output: '1' | '2' } }
 
 	// The following actions are "Get Status" commands, only necessary for troubleshooting
 	blink_status: { options: Record<string, never> }
@@ -519,6 +520,54 @@ export function UpdateActions(self: ModuleInstance): void {
 					}
 				} catch (err: any) {
 					self.log('error', `Failed to retrieve VOUTMute status: ${err?.message ?? err}`)
+				}
+			},
+		},
+		xYAVxZ: {
+			name: 'XY Routing',
+			description: 'Sets which input (1-3) is patched to which output (1-2).',
+			options: [
+				{
+					id: 'input',
+					type: 'dropdown',
+					label: 'Input',
+					default: '1',
+					choices: [
+						{ id: '1', label: '1 - USB-C' },
+						{ id: '2', label: '2 - HDMI 2' },
+						{ id: '3', label: '3 - HDMI 3' },
+					],
+				},
+				{
+					id: 'output',
+					type: 'dropdown',
+					label: 'Output',
+					default: '1',
+					choices: [
+						{ id: '1', label: 'HDMI 1' },
+						{ id: '2', label: 'HDMI 2' },
+					],
+				},
+			],
+			callback: async (action) => {
+				try {
+					const input = action.options.input
+					const output = action.options.output
+					const names: Record<string, string> = {
+						'1': 'USB-C',
+						'2': 'HDMI 2',
+						'3': 'HDMI 3',
+					}
+
+					if (!/^[1-3]$/.test(input) || !/^[1-2]$/.test(output)) {
+						self.log('warn', `Invalid input/output selection: ${input}/${output}`)
+						return
+					}
+
+					self.log('info', `Routing Input ${input} (${names[input]}) to Output ${output}`)
+					self.sendCommand(`x${input}AVx${output}`)
+				} catch (err: any) {
+					self.log('error', `Failed to set routing: ${err?.message ?? err}`)
 				}
 			},
 		},
