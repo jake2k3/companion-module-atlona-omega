@@ -3,6 +3,7 @@ import type { VariablesSchema } from '../variables.js'
 
 export type ActionsSchema = {
 	blink: { options: { mode: 'on' | 'off' | 'toggle' } }
+	CommaWait: { options: { mode: 'on' | 'off' | 'toggle' } }
 	lock: { options: Record<string, never> }
 	lraud: { options: { mode: 'on' | 'off' } }
 	pwoff: { options: Record<string, never> }
@@ -14,14 +15,13 @@ export type ActionsSchema = {
 	// The following actions are "Get Status" commands, only necessary for troubleshooting
 	blink_status: { options: Record<string, never> }
 	displayButton_status: { options: Record<string, never> }
+	input_status: { options: Record<string, never> }
 	lraud_status: { options: Record<string, never> }
 	power_status: { options: Record<string, never> }
 	VOUTMute_status: { options: Record<string, never> }
 
 	/*
-    CommaWait   Enable/Disable a comma adding a 5 second delay between commands
     DispBtn     Sets the command triggered through display control (set in the webGUI)
-    InputStatus Displays the status for each input
     Status      Displays the routing state of the unit
     VOUTMute    Mutes/Unmutes audio output volume
     x?$         Mutes/Unmutes AV signals for the specified output channel
@@ -122,6 +122,59 @@ export function UpdateActions(self: ModuleInstance): void {
 			},
 		},
 
+		CommaWait: {
+			name: 'External Device: CommaWait',
+			description:
+				'Enable/Disable a comma adding a 5 second delay between commands sending to an external device. Default is on.',
+			options: [
+				{
+					id: 'mode',
+					type: 'dropdown',
+					label: 'Mode',
+					default: 'toggle',
+					choices: [
+						{ id: 'on', label: 'On' },
+						{ id: 'off', label: 'Off' },
+						{ id: 'toggle', label: 'Toggle' },
+					],
+				},
+			],
+			callback: async (action) => {
+				const mode = action.options.mode
+				if (mode === 'on') {
+					self.log('info', 'Turning CommaWait ON')
+					self.sendCommand('CommaWait on')
+					self.setVariableValues({ statusCommaWait: 'on' })
+					return
+				}
+
+				if (mode === 'off') {
+					self.log('info', 'Turning CommaWait OFF')
+					self.sendCommand('CommaWait off')
+					self.setVariableValues({ statusCommaWait: 'off' })
+					return
+				}
+
+				self.log('info', 'Querying device for CommaWait status')
+				self.sendCommand('CommaWait sta')
+
+				const line = await (self as any).waitForLine(/^(CommaWait on|CommaWait off)$/i, 3000)
+				const status = line.trim()
+
+				if (status === 'CommaWait on') {
+					self.log('info', 'CommaWait is ON, turning OFF')
+					self.sendCommand('CommaWait off')
+					self.setVariableValues({ statusCommaWait: 'off' })
+				} else if (status === 'CommaWait off') {
+					self.log('info', 'CommaWait is OFF, turning ON')
+					self.sendCommand('CommaWait on')
+					self.setVariableValues({ statusCommaWait: 'on' })
+				} else {
+					self.log('warn', `Unexpected CommaWait response: ${line}`)
+				}
+			},
+		},
+
 		displayButton_status: {
 			name: 'Get DISPLAY Button Status',
 			sortName: 'zzz Get DISPLAY Button Status',
@@ -146,6 +199,55 @@ export function UpdateActions(self: ModuleInstance): void {
 					}
 				} catch (err: any) {
 					self.log('error', `Failed to retrieve DISPLAY button status: ${err?.message ?? err}`)
+				}
+			},
+		},
+
+		input_status: {
+			name: 'Get Input Status',
+			sortName: 'zzz Get Input Status',
+			description: 'Displays the connection status of each input on the unit (USB-C, HDMI2, HDMI3)',
+			options: [],
+			callback: async () => {
+				try {
+					self.log('info', 'Querying device for input status')
+					self.sendCommand('InputStatus')
+
+					const line = await (self as any).waitForLine(/^InputStatus\s*([01]{3})$/i, 3000)
+					const m = line.match(/^InputStatus\s*([01]{3})$/i)
+					if (!m) {
+						self.log('warn', `Unexpected input status response: ${line}`)
+						return
+					}
+					const bits = m[1]
+					const names: Record<string, string> = {
+						'1': 'USB-C',
+						'2': 'HDMI 2',
+						'3': 'HDMI 3',
+					}
+
+					for (let i = 0; i < 4; i++) {
+						const connected = bits.charAt(i) === '1'
+						const idx = (i + 1).toString()
+						self.log('info', `Input ${i + 1} (${names[idx]}) is ${connected ? 'connected.' : 'not connected.'}`)
+					}
+
+					const input1Connected = bits.charAt(0) === '1' ? 'connected' : 'not-connected'
+					const input2Connected = bits.charAt(1) === '1' ? 'connected' : 'not-connected'
+					const input3Connected = bits.charAt(2) === '1' ? 'connected' : 'not-connected'
+
+					self.setVariableValues({
+						input1Connected,
+						input2Connected,
+						input3Connected,
+					})
+
+					// eslint-disable-next-line prettier/prettier
+					self.checkFeedbacks(
+						'fbkInputNotConnected',
+					)
+				} catch (err: any) {
+					self.log('error', `Failed to retrieve input status: ${err?.message ?? err}`)
 				}
 			},
 		},
