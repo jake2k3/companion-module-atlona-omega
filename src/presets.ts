@@ -112,7 +112,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 					name: 'Power & Debugging Tools',
 					description: 'System commands and tools for troubleshooting',
 					type: 'simple',
-					presets: ['lock', 'unlock', 'pwon', 'pwoff', 'blink'],
+					presets: ['faux-reboot', 'lock', 'unlock', 'pwon', 'pwoff', 'blink'],
 				},
 				{
 					id: 'rs232',
@@ -265,7 +265,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 		name: `Route Input $(local:input) to HDMI Output 1`,
 		type: 'simple',
 		style: {
-			text: 'Input $(local:input) to HDMI Out 1',
+			text: 'Input $(local:input) to HDMI 1',
 			size: '14',
 			color: 0xffffff,
 			bgcolor: 0x000000,
@@ -332,7 +332,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 		name: `Route Input $(local:input) to HDMI Output 2`,
 		type: 'simple',
 		style: {
-			text: 'Input $(local:input) to HDMI Out 2',
+			text: 'Input $(local:input) to HDMI 2',
 			size: '14',
 			color: 0xffffff,
 			bgcolor: 0x000000,
@@ -680,6 +680,34 @@ export function UpdatePresets(self: ModuleInstance): void {
 				down: [
 					{
 						actionId: 'reboot',
+						options: {},
+					},
+				],
+				up: [],
+			},
+		],
+	}
+
+	presets['faux-reboot'] = {
+		name: 'Reboot Device',
+		type: 'simple',
+		style: {
+			text: 'Reboot',
+			size: '18',
+			color: 0xffffff,
+			bgcolor: 0x000000,
+		},
+		feedbacks: [],
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'pwoff',
+						options: {},
+					},
+					{
+						actionId: 'pwon',
+						delay: 30000,
 						options: {},
 					},
 				],
