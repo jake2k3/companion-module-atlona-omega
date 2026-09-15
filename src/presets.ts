@@ -15,7 +15,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 					id: `route-hdmi`,
 					name: `Route Input to Output 1 (HDMI)`,
 					type: 'template',
-					presetId: 'routeYout1',
+					presetId: 'routeYout1-ms42',
 
 					templateVariableName: 'input',
 					templateValues: [
@@ -29,7 +29,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 					id: `route-hdbaset`,
 					name: `Route Input to Output 2 (HDBaseT)`,
 					type: 'template',
-					presetId: 'routeYout2',
+					presetId: 'routeYout2-ms42',
 
 					templateVariableName: 'input',
 					templateValues: [
@@ -82,6 +82,32 @@ export function UpdatePresets(self: ModuleInstance): void {
 			name: 'AT-OME-SW32',
 			definitions: [
 				{
+					id: `route-hdmi1`,
+					name: `Route Input to HDMI Output 1`,
+					type: 'template',
+					presetId: 'routeYout1-sw32',
+
+					templateVariableName: 'input',
+					templateValues: [
+						{ name: `Input 1 (USB-C) to HDMI Output 1`, value: '1' },
+						{ name: `Input 2 (HDMI 2) to HDMI Output 1`, value: '2' },
+						{ name: `Input 3 (HDMI 3) to HDMI Output 1`, value: '3' },
+					],
+				},
+				{
+					id: `route-hdmi2`,
+					name: `Route Input to HDMI Output 2`,
+					type: 'template',
+					presetId: 'routeYout2-sw32',
+
+					templateVariableName: 'input',
+					templateValues: [
+						{ name: `Input 1 (USB-C) to HDMI Output 2`, value: '1' },
+						{ name: `Input 2 (HDMI 2) to HDMI Output 2`, value: '2' },
+						{ name: `Input 3 (HDMI 3) to HDMI Output 2`, value: '3' },
+					],
+				},
+				{
 					id: 'power',
 					name: 'Power & Debugging Tools',
 					description: 'System commands and tools for troubleshooting',
@@ -101,7 +127,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 
 	const presets: CompanionPresetDefinitions<ModuleSchema> = {}
 
-	presets['routeYout1'] = {
+	presets['routeYout1-ms42'] = {
 		name: `Route Input $(local:input) to Output 1 (HDMI)`,
 		type: 'simple',
 		style: {
@@ -168,11 +194,145 @@ export function UpdatePresets(self: ModuleInstance): void {
 		],
 	}
 
-	presets['routeYout2'] = {
+	presets['routeYout2-ms42'] = {
 		name: `Route Input $(local:input) to Output 2 (HDBaseT)`,
 		type: 'simple',
 		style: {
 			text: 'Input $(local:input) to HDBaseT Out',
+			size: '14',
+			color: 0xffffff,
+			bgcolor: 0x000000,
+		},
+		feedbacks: [
+			{
+				feedbackId: 'fbkRoutedOut2',
+				options: { input: { isExpression: true, value: '$(local:input)' } },
+				style: {
+					bgcolor: hexToNumber('#000066'),
+					color: hexToNumber('#FFFFFF'),
+				},
+			},
+			{
+				feedbackId: 'fbkInputNotConnected',
+				options: { input: { isExpression: true, value: '$(local:input)' } },
+				style: {
+					bgcolor: hexToNumber('#242424'),
+					color: hexToNumber('#B6B6B6'),
+					text: 'Input $(local:input) not connected',
+					size: 'auto',
+				},
+			},
+			{
+				feedbackId: 'fbkOutputDisabled',
+				options: { output: { isExpression: true, value: '$(local:output)' } },
+				style: {
+					bgcolor: hexToNumber('#242424'),
+					color: hexToNumber('#B6B6B6'),
+					text: 'Output $(local:output) disabled',
+					size: 'auto',
+				},
+			},
+		],
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'xYAVxZ',
+						options: {
+							input: { isExpression: true, value: '$(local:input)' },
+							output: '2',
+						},
+					},
+				],
+				up: [],
+			},
+		],
+		localVariables: [
+			{
+				variableType: 'simple',
+				variableName: 'input',
+				startupValue: 0,
+			},
+			{
+				variableType: 'simple',
+				variableName: 'output',
+				startupValue: '2',
+			},
+		],
+	}
+
+	presets['routeYout1-sw32'] = {
+		name: `Route Input $(local:input) to HDMI Output 1`,
+		type: 'simple',
+		style: {
+			text: 'Input $(local:input) to HDMI Out 1',
+			size: '14',
+			color: 0xffffff,
+			bgcolor: 0x000000,
+		},
+		feedbacks: [
+			{
+				feedbackId: 'fbkRoutedOut1',
+				options: { input: { isExpression: true, value: '$(local:input)' } },
+				style: {
+					bgcolor: hexToNumber('#990000'),
+					color: hexToNumber('#FFFFFF'),
+				},
+			},
+			{
+				feedbackId: 'fbkInputNotConnected',
+				options: { input: { isExpression: true, value: '$(local:input)' } },
+				style: {
+					bgcolor: hexToNumber('#242424'),
+					color: hexToNumber('#B6B6B6'),
+					text: 'Input $(local:input) not connected',
+					size: 'auto',
+				},
+			},
+			{
+				feedbackId: 'fbkOutputDisabled',
+				options: { output: { isExpression: true, value: '$(local:output)' } },
+				style: {
+					bgcolor: hexToNumber('#242424'),
+					color: hexToNumber('#B6B6B6'),
+					text: 'Output $(local:output) disabled',
+					size: 'auto',
+				},
+			},
+		],
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'xYAVxZ',
+						options: {
+							input: { isExpression: true, value: '$(local:input)' },
+							output: '1',
+						},
+					},
+				],
+				up: [],
+			},
+		],
+		localVariables: [
+			{
+				variableType: 'simple',
+				variableName: 'input',
+				startupValue: 0,
+			},
+			{
+				variableType: 'simple',
+				variableName: 'output',
+				startupValue: '1',
+			},
+		],
+	}
+
+	presets['routeYout2-sw32'] = {
+		name: `Route Input $(local:input) to HDMI Output 2`,
+		type: 'simple',
+		style: {
+			text: 'Input $(local:input) to HDMI Out 2',
 			size: '14',
 			color: 0xffffff,
 			bgcolor: 0x000000,
