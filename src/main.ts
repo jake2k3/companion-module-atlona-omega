@@ -193,10 +193,13 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		while (handled) {
 			handled = false
 
-			if (this.receiveBuffer.includes('Username:')) {
+			const usernamePrompt = /^[\s\S]*(?:Username:|AT-OME-PS62 login:)/
+			const passwordPrompt = /^[\s\S]*(?:Password:|password:)/
+
+			if (usernamePrompt.test(this.receiveBuffer)) {
 				if (this.config.username) {
 					this.sendRawCommand(this.config.username)
-					this.receiveBuffer = this.receiveBuffer.replace(/^[\s\S]*Username:/, '')
+					this.receiveBuffer = this.receiveBuffer.replace(usernamePrompt, '')
 					handled = true
 				} else {
 					this.log('error', 'Username prompt received but username is not configured')
@@ -204,10 +207,10 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 				}
 			}
 
-			if (this.receiveBuffer.includes('Password:')) {
+			if (passwordPrompt.test(this.receiveBuffer)) {
 				if (this.secrets.password) {
 					this.sendRawCommand(this.secrets.password)
-					this.receiveBuffer = this.receiveBuffer.replace(/^[\s\S]*Password:/, '')
+					this.receiveBuffer = this.receiveBuffer.replace(passwordPrompt, '')
 					handled = true
 				} else {
 					this.log('error', 'Password prompt received but password is not configured')
