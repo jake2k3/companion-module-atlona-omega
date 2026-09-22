@@ -16,6 +16,7 @@ import { UpdateActions, type ActionsSchema } from './actions.js'
 import { UpdateFeedbacks, type FeedbacksSchema } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
 import { queryInitialStatus as queryOmeMs42Status } from './status/ome-ms42.js'
+import { queryInitialStatus as queryOmePs62Status } from './status/ome-ps62.js'
 import { queryInitialStatus as queryOmeSw32Status } from './status/ome-sw32.js'
 
 export type ModuleSchema = {
@@ -146,11 +147,14 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 	// Query the status of the device on connection and update variables accordingly
 	private async queryInitialStatus(): Promise<void> {
+		if (this.config.model === 'ome-ps62') {
+			await queryOmePs62Status(this)
+			return
+		}
 		if (this.config.model === 'ome-sw32') {
 			await queryOmeSw32Status(this)
 			return
 		}
-
 		await queryOmeMs42Status(this)
 		return
 	}
@@ -176,7 +180,8 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 				continue
 			}
 
-			if (line === 'Welcome to TELNET.') {
+			const welcomeMessage = ['Welcome to TELNET.', 'Welcome to Telnet!']
+			if (welcomeMessage.includes(line)) {
 				if (!this.authenticated) {
 					this.authenticated = true
 					this.updateStatus(InstanceStatus.Ok, 'Authenticated')

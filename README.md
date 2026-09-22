@@ -20,3 +20,9 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
   - IPStatic
   - Mreset
   - (RS-232) RepCmd, RepeatCmdTime
+
+## Branch "models"
+
+- RS232para and status: Console settings are set from command "CSpara" not "RS232paraZ"
+- Add variables for RS232para for Console, HDBT1, HDBT2, HDBTOut
+- Finish actions, variables, feedback, and presets for SW32 and PS62

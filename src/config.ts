@@ -1,6 +1,6 @@
 import { Regex, type SomeCompanionConfigField } from '@companion-module/base'
 
-export type ModelId = 'ome-ms42' | 'ome-sw32'
+export type ModelId = 'ome-ms42' | 'ome-ps62' | 'ome-sw32'
 
 export type ModuleConfig = {
 	model: ModelId
@@ -30,6 +30,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			width: 6,
 			choices: [
 				{ id: 'ome-ms42', label: 'OME-MS42' },
+				{ id: 'ome-ps62', label: 'OME-PS62' },
 				{ id: 'ome-sw32', label: 'OME-SW32' },
 			],
 			default: 'ome-ms42',
