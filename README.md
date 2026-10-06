@@ -6,6 +6,9 @@ If there is a specific action or feature you'd like to see implemented, please p
 
 See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 
+## Bugs
+- Move action log entries from 'info' to 'debug'
+
 ## Active To-Do's
 
 - Define additional feedback for USB Routing, logic, etc
