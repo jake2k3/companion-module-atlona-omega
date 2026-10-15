@@ -43,6 +43,7 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
     - output1Status (HDMI)
     - routeOutput0
     - routeOutput1
+- statusBlink and statusPower are not common variables for OME-MS52W :(
 - RS232para and status: Console settings are set from command "CSpara" not "RS232paraZ"
 - Add variables for RS232para for Console, HDBT1, HDBT2, HDBTOut
 - Finish actions, variables, feedback, and presets for SW32 and PS62
