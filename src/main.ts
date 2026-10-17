@@ -16,6 +16,7 @@ import { UpdateActions, type ActionsSchema } from './actions.js'
 import { UpdateFeedbacks, type FeedbacksSchema } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
 import { queryInitialStatus as queryOmeMs42Status } from './status/ome-ms42.js'
+import { queryInitialStatus as queryOmeMs52wStatus } from './status/ome-ms52w.js'
 import { queryInitialStatus as queryOmePs62Status } from './status/ome-ps62.js'
 import { queryInitialStatus as queryOmeSw32Status } from './status/ome-sw32.js'
 
@@ -147,6 +148,10 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 	// Query the status of the device on connection and update variables accordingly
 	private async queryInitialStatus(): Promise<void> {
+		if (this.config.model === 'ome-ms52w') {
+			await queryOmeMs52wStatus(this)
+			return
+		}
 		if (this.config.model === 'ome-ps62') {
 			await queryOmePs62Status(this)
 			return
@@ -180,7 +185,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 				continue
 			}
 
-			const welcomeMessage = ['Welcome to TELNET.', 'Welcome to Telnet!']
+			const welcomeMessage = ['Welcome to TELNET.', 'Welcome to Telnet!', 'Authentication succeded'] // yes, succeded is misspelled
 			if (welcomeMessage.includes(line)) {
 				if (!this.authenticated) {
 					this.authenticated = true
@@ -198,7 +203,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		while (handled) {
 			handled = false
 
-			const usernamePrompt = /^[\s\S]*(?:Username:|AT-OME-PS62 login:)/
+			const usernamePrompt = /^[\s\S]*(?:Username:|username:|AT-OME-PS62 login:)/
 			const passwordPrompt = /^[\s\S]*(?:Password:|password:)/
 
 			if (usernamePrompt.test(this.receiveBuffer)) {
