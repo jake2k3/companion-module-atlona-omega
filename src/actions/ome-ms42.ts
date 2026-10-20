@@ -516,6 +516,12 @@ export function UpdateActions(self: ModuleInstance): void {
 						routeOutput1: `${y}`,
 						routeOutput2: `${z}`,
 					})
+
+					// eslint-disable-next-line prettier/prettier
+					self.checkFeedbacks(
+						'fbkRoutedOut1', 'fbkRoutedOut2'
+					)
+
 				} catch (err: any) {
 					self.log('error', `Failed to retrieve input status: ${err?.message ?? err}`)
 				}
@@ -918,6 +924,12 @@ export function UpdateActions(self: ModuleInstance): void {
 						output1Enabled: `${y}`,
 						output2Enabled: `${z}`,
 					})
+
+					// eslint-disable-next-line prettier/prettier
+					self.checkFeedbacks(
+						'fbkOutputDisabled'
+					)
+
 				} catch (err: any) {
 					self.log('error', `Failed to retrieve output enablement status: ${err?.message ?? err}`)
 				}
