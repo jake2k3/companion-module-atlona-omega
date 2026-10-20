@@ -3,8 +3,8 @@ import type ModuleInstance from '../main.js'
 export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 	try {
 		self.sendCommand('Type')
-		const varType = await self.waitForLine(/^(AT-.*)/i, 3000)
-		self.log('debug', `Device type: ${varType}`)
+		const varModel = await self.waitForLine(/^(AT-.*)/i, 3000)
+		self.log('debug', `Device model: ${varModel}`)
 
 		self.sendCommand('Version')
 		const varVersion = await self.waitForLine(/^\d+\.\d+\.\d+$/, 3000)
@@ -78,8 +78,8 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		const statusAudioOutHDBaseT = queryVoutMute2.trim().endsWith(' on') ? 'off' : 'on'
 
 		self.setVariableValues({
-			type: varType,
-			version: varVersion,
+			deviceModel: varModel,
+			deviceVersion: varVersion,
 			statusPower: varPower,
 			input1Connected: inputMatch[1] === '1' ? 'connected' : 'not-connected',
 			input2Connected: inputMatch[2] === '1' ? 'connected' : 'not-connected',

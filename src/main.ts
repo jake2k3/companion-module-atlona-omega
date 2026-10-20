@@ -37,14 +37,22 @@ type PendingLineWaiter = {
 	timer: NodeJS.Timeout
 }
 
+type PendingJsonWaiter = {
+	resolve: (value: unknown) => void
+	reject: (error: Error) => void
+	timer: NodeJS.Timeout
+}
+
 export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	config!: ModuleConfig // Setup in init()
 	secrets!: ModuleSecrets // Setup in init()
 
 	private telnet: TelnetHelper | undefined
 	private receiveBuffer = ''
+	private jsonBuffer = ''
 	private authenticated = false
 	private pendingLineWaiters: PendingLineWaiter[] = []
+	private pendingJsonWaiters: PendingJsonWaiter[] = []
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -113,11 +121,17 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.telnet = undefined
 		this.authenticated = false
 		this.receiveBuffer = ''
+		this.jsonBuffer = ''
 		for (const waiter of this.pendingLineWaiters) {
 			clearTimeout(waiter.timer)
 			waiter.reject(new Error('Connection closed while waiting for a response line'))
 		}
 		this.pendingLineWaiters = []
+		for (const waiter of this.pendingJsonWaiters) {
+			clearTimeout(waiter.timer)
+			waiter.reject(new Error('Connection closed while waiting for a JSON response'))
+		}
+		this.pendingJsonWaiters = []
 	}
 
 	async waitForLine(regex: RegExp, timeoutMs: number): Promise<string> {
@@ -146,6 +160,31 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		})
 	}
 
+	async waitForJson(timeoutMs: number): Promise<unknown> {
+		return new Promise((resolve, reject) => {
+			const timer = setTimeout(() => {
+				this.pendingJsonWaiters = this.pendingJsonWaiters.filter((waiter) => waiter !== pendingWaiter)
+				reject(new Error(`Timed out waiting for a JSON response`))
+			}, timeoutMs)
+
+			const pendingWaiter: PendingJsonWaiter = {
+				resolve: (value) => {
+					clearTimeout(timer)
+					this.pendingJsonWaiters = this.pendingJsonWaiters.filter((waiter) => waiter !== pendingWaiter)
+					resolve(value)
+				},
+				reject: (error) => {
+					clearTimeout(timer)
+					this.pendingJsonWaiters = this.pendingJsonWaiters.filter((waiter) => waiter !== pendingWaiter)
+					reject(error)
+				},
+				timer,
+			}
+
+			this.pendingJsonWaiters.push(pendingWaiter)
+		})
+	}
+
 	// Query the status of the device on connection and update variables accordingly
 	private async queryInitialStatus(): Promise<void> {
 		if (this.config.model === 'ome-ms52w') {
@@ -164,6 +203,38 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		return
 	}
 
+	private handleJsonPayload(payload: string): void {
+		try {
+			const parsed = JSON.parse(payload) as Record<string, unknown>
+			if (this.pendingJsonWaiters.length > 0) {
+				const pendingWaiter = this.pendingJsonWaiters[0]
+				pendingWaiter.resolve(parsed)
+				return
+			}
+
+			const result = parsed.result
+			const methodreturn =
+				typeof parsed.methodreturn === 'string' ? parsed.methodreturn.replace(/\s+/g, '').toLowerCase() : ''
+			if (methodreturn === 'display:input:get' && result && typeof result === 'object') {
+				const typedResult = result as Record<string, unknown>
+				const input = typedResult.input
+				const type = typedResult.type
+				if (typeof input === 'number' || typeof input === 'string') {
+					const normalizedInput = Number(input)
+					if (Number.isInteger(normalizedInput) && normalizedInput >= 0 && normalizedInput <= 4) {
+						this.setVariableValues({
+							routeOutput0: String(normalizedInput),
+							routeOutput1: String(normalizedInput),
+							byodType: typeof type === 'string' ? type : 'unknown',
+						})
+					}
+				}
+			}
+		} catch (error) {
+			this.log('warn', `Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)}`)
+		}
+	}
+
 	private handleData(data: Buffer): void {
 		const chunk = data.toString('utf8')
 		this.receiveBuffer += chunk
@@ -176,8 +247,44 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 		for (const rawLine of lines) {
 			const line = rawLine.trim()
-
 			this.log('debug', `RX: [${line}]`)
+
+			if (line.length > 0) {
+				const jsonStart = this.jsonBuffer.length === 0 && line.startsWith('{')
+				if (jsonStart || this.jsonBuffer.length > 0) {
+					this.jsonBuffer = jsonStart ? line : `${this.jsonBuffer}\n${line}`
+					let braceDepth = 0
+					let inString = false
+					let escaped = false
+					for (const character of this.jsonBuffer) {
+						switch (character) {
+							case '\\':
+								if (inString) escaped = !escaped
+								break
+							case '"':
+								if (!escaped) inString = !inString
+								escaped = false
+								break
+							case '{':
+								if (!inString) braceDepth += 1
+								break
+							case '}':
+								if (!inString) braceDepth -= 1
+								break
+							default:
+								if (escaped && inString) escaped = false
+								break
+						}
+					}
+					if (braceDepth <= 0 && this.jsonBuffer.includes('{') && this.jsonBuffer.includes('}')) {
+						const payload = this.jsonBuffer
+						this.jsonBuffer = ''
+						this.handleJsonPayload(payload)
+						continue
+					}
+					continue
+				}
+			}
 
 			const matchingWaiter = this.pendingLineWaiters.find((waiter) => waiter.regex.test(line))
 			if (matchingWaiter) {

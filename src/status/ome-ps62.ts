@@ -3,10 +3,10 @@ import type ModuleInstance from '../main.js'
 export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 	try {
 		self.sendCommand('Type')
-		const type = await self.waitForLine(/^(AT-.*)/i, 3000)
+		const varModel = await self.waitForLine(/^(AT-.*)/i, 3000)
 
 		self.sendCommand('Version')
-		const version = await self.waitForLine(/^\d+\.\d+\.\d+$/, 3000)
+		const varVersion = await self.waitForLine(/^\d+\.\d+\.\d+$/, 3000)
 
 		self.sendCommand('PWSTA')
 		const powerResponse = await self.waitForLine(/^(PWON|PWOFF)$/i, 3000)
@@ -53,8 +53,8 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		*/
 
 		self.setVariableValues({
-			type,
-			version,
+			deviceModel: varModel,
+			deviceVersion: varVersion,
 			statusPower: power,
 
 			/*

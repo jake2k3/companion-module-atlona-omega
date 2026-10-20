@@ -17,10 +17,8 @@ import {
 } from './variables/ome-sw32.js'
 
 export type CommonVariablesSchema = {
-	statusBlink: string
-	statusPower: string
-	type: string
-	version: string
+	deviceModel: string
+	deviceVersion: string
 }
 
 export type VariablesSchema = CommonVariablesSchema &

@@ -13,6 +13,8 @@ export type VariablesSchema = {
 	statusAudioOutAnalog: string
 	statusAudioOutHDMI: string
 	statusAudioOutHDBaseT: string
+	statusBlink: string
+	statusPower: string
 	statusUsbHostLogic: string
 	statusUsbHostRoute: string
 	statusUsbVbusControl: string
@@ -32,6 +34,8 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		statusAudioOutAnalog: { name: 'Analog Audio Output status' },
 		statusAudioOutHDMI: { name: 'HDMI Audio Output status' },
 		statusAudioOutHDBaseT: { name: 'HDBaseT Audio Output status' },
+		statusBlink: { name: 'Blink status' },
+		statusPower: { name: 'Power status' },
 		statusUsbHostLogic: { name: 'USB Host Logic status' },
 		statusUsbHostRoute: { name: 'USB Host Route status' },
 		statusUsbVbusControl: { name: 'USB VBus Power status' },

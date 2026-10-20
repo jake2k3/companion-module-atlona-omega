@@ -6,13 +6,52 @@ export type ActionsSchema = {
 	displayMinimalSet: { options: { state: '0' | '1' } }
 
 	// The following actions are "Get Status" commands, only necessary for troubleshooting
-	// displayInputGet: { options: Record<string, never> }
-	// displayMinimalGet: { options: Record<string, never> }
-	// getInputStates: { options: Record<string, never> }
+	displayInputGet: { options: Record<string, never> }
+	displayMinimalGet: { options: Record<string, never> }
+	getInputStates: { options: Record<string, never> }
 }
 
 export function UpdateActions(self: ModuleInstance): void {
 	self.setModelActionDefinitions<ActionsSchema>({
+		displayInputGet: {
+			name: 'Get Active Input',
+			sortName: 'zzz Get Active Input',
+			description: 'Gets the active input.',
+			options: [],
+			callback: async () => {
+				try {
+					self.log('info', 'Querying device for active input')
+					const responsePromise = self.waitForJson(3000)
+					self.sendCommand('Display:Input:Get')
+					const response = await responsePromise
+					const displayInputPayload = response as {
+						methodreturn?: string
+						result?: { input?: number | string; type?: string }
+					}
+					const methodreturn =
+						typeof displayInputPayload.methodreturn === 'string'
+							? displayInputPayload.methodreturn.replace(/\s+/g, '').toLowerCase()
+							: ''
+					if (methodreturn !== 'display:input:get' || !displayInputPayload.result) {
+						self.log('warn', `Unexpected display input response: ${JSON.stringify(displayInputPayload)}`)
+						return
+					}
+					const input = Number(displayInputPayload.result.input)
+					if (!Number.isInteger(input) || input < 0 || input > 4) {
+						self.log('warn', `Unexpected active input: ${displayInputPayload.result.input}`)
+						return
+					}
+					self.setVariableValues({
+						routeOutput0: String(input),
+						routeOutput1: String(input),
+						byodType: typeof displayInputPayload.result.type === 'string' ? displayInputPayload.result.type : 'unknown',
+					})
+				} catch (err: any) {
+					self.log('error', `Failed to retrieve active input: ${err?.message ?? err}`)
+				}
+			},
+		},
+
 		displayInputSet: {
 			name: 'Set Active Input',
 			description: 'Sets the active input.',
@@ -49,11 +88,47 @@ export function UpdateActions(self: ModuleInstance): void {
 
 					self.log('info', `Routing Input ${Number(input) + 1} (${names[input]}) to HDBaseT and HDMI Outputs`)
 					self.sendCommand(`displayInputSet ${input}`)
+					self.setVariableValues({
+						routeOutput0: String(input),
+						routeOutput1: String(input),
+					})
 				} catch (err: any) {
 					self.log('error', `Failed to set active input: ${err?.message ?? err}`)
 				}
 			},
 		},
+
+		displayMinimalGet: {
+			name: 'Get Output Display State',
+			sortName: 'zzz Get Output Display State',
+			description: 'Retrieves the state of the output display.',
+			options: [],
+			callback: async () => {
+				try {
+					self.log('info', 'Querying device for output display state')
+					self.sendCommand('Display:Minimal:Get')
+
+					const line = await (self as any).waitForLine(/^(on|off|false)$/i, 3000)
+					const status = line.trim()
+
+					if (status === 'on') {
+						self.log('info', 'Output display is ON.')
+						self.setVariableValues({ output0Status: 'on', output1Status: 'on' })
+					} else if (status === 'off') {
+						self.log('info', 'Output display is OFF.')
+						self.setVariableValues({ output0Status: 'off', output1Status: 'off' })
+					} else if (status === 'false') {
+						self.log('info', 'Output display is NOT CONNECTED.')
+						self.setVariableValues({ output0Status: 'false', output1Status: 'false' })
+					} else {
+						self.log('warn', `Unexpected output display response: ${line}`)
+					}
+				} catch (err: any) {
+					self.log('error', `Failed to retrieve output display state: ${err?.message ?? err}`)
+				}
+			},
+		},
+
 		displayMinimalSet: {
 			name: 'Set Output Display State',
 			description: 'Sets the state of the output display.',
@@ -88,6 +163,64 @@ export function UpdateActions(self: ModuleInstance): void {
 					}
 				} catch (err: any) {
 					self.log('error', `Failed to set output display state: ${err?.message ?? err}`)
+				}
+			},
+		},
+
+		getInputStates: {
+			name: 'Get Input Status',
+			sortName: 'zzz Get Input States',
+			description: 'Displays the connection status of each input on the unit (e.g., HDMI, DisplayPort, etc.)',
+			options: [],
+			callback: async () => {
+				try {
+					self.log('info', 'Querying device for input status')
+					self.sendCommand('getInputStates')
+
+					const line = await (self as any).waitForLine(
+						/^\[\s*GetInputState\s+[0-4]\s+(?:true|false)(?:\s*,\s*GetInputState\s+[0-4]\s+(?:true|false)){4}\s*\]$/i,
+						3000,
+					)
+					const inputStates: (boolean | undefined)[] = []
+					for (const match of line.matchAll(/GetInputState\s+([0-4])\s+(true|false)/gi)) {
+						const input = Number(match[1])
+						if (inputStates[input] !== undefined) {
+							self.log('warn', `Duplicate input status for input ${input}: ${line}`)
+							return
+						}
+						inputStates[input] = match[2].toLowerCase() === 'true'
+					}
+					if (inputStates.some((state) => state === undefined) || inputStates.length !== 5) {
+						self.log('warn', `Unexpected input status response: ${line}`)
+						return
+					}
+
+					const inputNames = ['USB-C', 'DisplayPort', 'HDMI 3', 'HDMI 4', 'BYOD']
+					for (let input = 0; input < inputStates.length; input++) {
+						const connected = inputStates[input]
+						self.log(
+							'info',
+							`Input ${input + 1} (${inputNames[input]}) is ${connected ? 'connected.' : 'not connected.'}`,
+						)
+					}
+
+					const input0Connected = inputStates[0] ? 'connected' : 'not-connected'
+					const input1Connected = inputStates[1] ? 'connected' : 'not-connected'
+					const input2Connected = inputStates[2] ? 'connected' : 'not-connected'
+					const input3Connected = inputStates[3] ? 'connected' : 'not-connected'
+					const input4Connected = inputStates[4] ? 'connected' : 'not-connected'
+
+					self.setVariableValues({
+						input0Connected,
+						input1Connected,
+						input2Connected,
+						input3Connected,
+						input4Connected,
+					})
+
+					self.checkFeedbacks('fbkInputNotConnected')
+				} catch (err: any) {
+					self.log('error', `Failed to retrieve input status: ${err?.message ?? err}`)
 				}
 			},
 		},

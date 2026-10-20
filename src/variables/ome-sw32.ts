@@ -10,7 +10,9 @@ export type VariablesSchema = {
 	routeOutput1: string
 	routeOutput2: string
 	statusAudioOutAnalog: string
+	statusBlink: string
 	statusCommaWait: string
+	statusPower: string
 }
 
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
@@ -24,6 +26,8 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		routeOutput1: { name: 'Output 1 Route Status' },
 		routeOutput2: { name: 'Output 2 Route Status' },
 		statusAudioOutAnalog: { name: 'Analog Audio Output status' },
+		statusBlink: { name: 'Blink status' },
 		statusCommaWait: { name: 'CommaWait status' },
+		statusPower: { name: 'Power status' },
 	})
 }
