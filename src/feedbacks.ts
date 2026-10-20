@@ -6,11 +6,11 @@ const hexToNumber = (value: HexColor): number => Number.parseInt(value.slice(1),
 export type FeedbacksSchema = {
 	fbkRoutedOut1: {
 		type: 'boolean'
-		options: { input: { input: '1' | '2' | '3' | '4' } }
+		options: { input: { input: '1' | '2' | '3' | '4' | '5' } }
 	}
 	fbkRoutedOut2: {
 		type: 'boolean'
-		options: { input: { input: '1' | '2' | '3' | '4' } }
+		options: { input: { input: '1' | '2' | '3' | '4' | '5' } }
 	}
 	fbkInputNotConnected: {
 		type: 'boolean'
@@ -44,6 +44,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 						{ id: '2', label: 'Input 2 (DisplayPort)' },
 						{ id: '3', label: 'Input 3 (HDMI 3)' },
 						{ id: '4', label: 'Input 4 (HDMI 4)' },
+						...(self.config.model === 'ome-ms52w' ? [{ id: '5' as const, label: 'Input 5 (BYOD)' }] : []),
 					],
 				},
 			],
@@ -74,6 +75,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 						{ id: '2', label: 'Input 2 (DisplayPort)' },
 						{ id: '3', label: 'Input 3 (HDMI 3)' },
 						{ id: '4', label: 'Input 4 (HDMI 4)' },
+						...(self.config.model === 'ome-ms52w' ? [{ id: '5' as const, label: 'Input 5 (BYOD)' }] : []),
 					],
 				},
 			],
@@ -104,6 +106,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 						{ id: '2', label: 'Input 2 (DisplayPort)' },
 						{ id: '3', label: 'Input 3 (HDMI 3)' },
 						{ id: '4', label: 'Input 4 (HDMI 4)' },
+						{ id: '5', label: 'Input 5 (BYOD)' },
 					],
 				},
 			],

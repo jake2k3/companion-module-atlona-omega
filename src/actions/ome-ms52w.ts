@@ -11,6 +11,16 @@ export type ActionsSchema = {
 	getInputStates: { options: Record<string, never> }
 }
 
+async function cancelWait<T>(controller: AbortController, promise: Promise<T>): Promise<void> {
+	controller.abort()
+	try {
+		await promise
+	} catch (error) {
+		if (error instanceof Error && error.name === 'AbortError') return
+		throw error
+	}
+}
+
 export function UpdateActions(self: ModuleInstance): void {
 	self.setModelActionDefinitions<ActionsSchema>({
 		displayInputGet: {
@@ -21,8 +31,12 @@ export function UpdateActions(self: ModuleInstance): void {
 			callback: async () => {
 				try {
 					self.log('info', 'Querying device for active input')
-					const responsePromise = self.waitForJson(3000)
-					self.sendCommand('Display:Input:Get')
+					const controller = new AbortController()
+					const responsePromise = self.waitForJson(3000, controller.signal)
+					if (!self.sendCommand('Display:Input:Get')) {
+						await cancelWait(controller, responsePromise)
+						return
+					}
 					const response = await responsePromise
 					const displayInputPayload = response as {
 						methodreturn?: string
@@ -36,14 +50,19 @@ export function UpdateActions(self: ModuleInstance): void {
 						self.log('warn', `Unexpected display input response: ${JSON.stringify(displayInputPayload)}`)
 						return
 					}
-					const input = Number(displayInputPayload.result.input)
-					if (!Number.isInteger(input) || input < 0 || input > 4) {
+					const inputValue = displayInputPayload.result.input
+					const input = typeof inputValue === 'number' || typeof inputValue === 'string' ? Number(inputValue) : NaN
+					const route = String(inputValue).trim().toLowerCase() === 'unknown' ? 'unknown' : String(input + 1)
+					if (route === 'unknown') {
+						self.log('warn', 'No input device is connected!')
+					}
+					if (route !== 'unknown' && (!Number.isInteger(input) || input < 0 || input > 4)) {
 						self.log('warn', `Unexpected active input: ${displayInputPayload.result.input}`)
 						return
 					}
 					self.setVariableValues({
-						routeOutput1: String(input),
-						routeOutput2: String(input),
+						routeOutput1: route,
+						routeOutput2: route,
 						byodType: typeof displayInputPayload.result.type === 'string' ? displayInputPayload.result.type : 'unknown',
 					})
 				} catch (err: any) {
@@ -88,10 +107,12 @@ export function UpdateActions(self: ModuleInstance): void {
 
 					const inputIndexed = Number(input) - 1
 					self.log('info', `Routing Input ${input} (${names[input]}) to HDBaseT and HDMI Outputs`)
-					self.sendCommand(`Display:Input:Set ${inputIndexed}`)
+
+					if (!self.sendCommand(`Display:Input:Set ${inputIndexed}`)) return
+
 					self.setVariableValues({
-						routeOutput1: String(inputIndexed),
-						routeOutput2: String(inputIndexed),
+						routeOutput1: input,
+						routeOutput2: input,
 					})
 				} catch (err: any) {
 					self.log('error', `Failed to set active input: ${err?.message ?? err}`)
@@ -107,10 +128,14 @@ export function UpdateActions(self: ModuleInstance): void {
 			callback: async () => {
 				try {
 					self.log('info', 'Querying device for output display state')
-					self.sendCommand('Display:Minimal:Get')
-
-					const line = await (self as any).waitForLine(/^(on|off|false)$/i, 3000)
-					const status = line.trim()
+					const controller = new AbortController()
+					const linePromise = self.waitForLine(/^(on|off|false)$/i, 3000, controller.signal)
+					if (!self.sendCommand('Display:Minimal:Get')) {
+						await cancelWait(controller, linePromise)
+						return
+					}
+					const line = await linePromise
+					const status = line.trim().toLowerCase()
 
 					if (status === 'on') {
 						self.log('info', 'Output display is ON.')
@@ -151,14 +176,14 @@ export function UpdateActions(self: ModuleInstance): void {
 
 					if (state === '0') {
 						self.log('info', 'Output display set to OFF')
-						self.sendCommand('Display:Minimal:Set 0')
+						if (!self.sendCommand('Display:Minimal:Set 0')) return
 						self.setVariableValues({ output1Status: 'off', output2Status: 'off' })
 						return
 					}
 
 					if (state === '1') {
 						self.log('info', 'Output display set to ON')
-						self.sendCommand('Display:Minimal:Set 1')
+						if (!self.sendCommand('Display:Minimal:Set 1')) return
 						self.setVariableValues({ output1Status: 'on', output2Status: 'on' })
 						return
 					}
@@ -176,12 +201,17 @@ export function UpdateActions(self: ModuleInstance): void {
 			callback: async () => {
 				try {
 					self.log('info', 'Querying device for input connection status')
-					self.sendCommand('getInputStates')
-
-					const line = await (self as any).waitForLine(
+					const controller = new AbortController()
+					const linePromise = self.waitForLine(
 						/^\[\s*GetInputState\s+[0-4]\s+(?:true|false)(?:\s*,\s*GetInputState\s+[0-4]\s+(?:true|false)){4}\s*\]$/i,
 						3000,
+						controller.signal,
 					)
+					if (!self.sendCommand('getInputStates')) {
+						await cancelWait(controller, linePromise)
+						return
+					}
+					const line = await linePromise
 					const inputStates: (boolean | undefined)[] = []
 					for (const match of line.matchAll(/GetInputState\s+([0-4])\s+(true|false)/gi)) {
 						const input = Number(match[1])

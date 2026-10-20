@@ -21,6 +21,8 @@ The module provides actions for the following commands from the Atlona API:
 
 Actions named `Get ... Status` are intended for manually refreshing variables or troubleshooting. Status variables are also populated automatically when the connection is established.
 
+RS-232 commands can be sent over HDBaseT to a remote device by using the "Send RS-232 Command" action. Configuration of serial baud rate, parity, etc. must be done in the Atlona Web UI for this action to function correctly. Please refer to the remote device's documentation for details on RS-232 setup and accepted commands. A line-ending character must be specified (either a carriage return, line feed, or both).
+
 ## Variables
 
 The module exposes variables for:
@@ -50,8 +52,6 @@ Partial support has been implemented for the following models:
 - AT-OME-SW32
 
 If you would like to request a specific model for integration in a future release, please submit a request [here](https://github.com/bitfocus/companion-module-atlona-omega/issues) and attach a PDF of that model's current API document to the request.
-
-RS-232 commands can be sent over HDBaseT to a remote device by using the "Send RS-232 Command" action. Configuration of serial baud rate, parity, etc. must be done in the Atlona Web UI for this action to function correctly. Please refer to the remote device's documentation for details on RS-232 setup and accepted commands. A line-ending character must be specified (either a carriage return, line feed, or both).
 
 ## Troubleshooting
 

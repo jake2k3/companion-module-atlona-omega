@@ -43,6 +43,12 @@ type PendingJsonWaiter = {
 	timer: NodeJS.Timeout
 }
 
+function createAbortError(message: string): Error {
+	const error = new Error(message)
+	error.name = 'AbortError'
+	return error
+}
+
 export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	config!: ModuleConfig // Setup in init()
 	secrets!: ModuleSecrets // Setup in init()
@@ -134,22 +140,28 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.pendingJsonWaiters = []
 	}
 
-	async waitForLine(regex: RegExp, timeoutMs: number): Promise<string> {
+	async waitForLine(regex: RegExp, timeoutMs: number, signal?: AbortSignal): Promise<string> {
+		if (signal?.aborted) {
+			throw createAbortError('Response line wait aborted')
+		}
+
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
-				this.pendingLineWaiters = this.pendingLineWaiters.filter((waiter) => waiter !== pendingWaiter)
-				reject(new Error(`Timed out waiting for line matching ${regex}`))
+				pendingWaiter.reject(new Error(`Timed out waiting for line matching ${regex}`))
 			}, timeoutMs)
 
+			const abortHandler = () => pendingWaiter.reject(createAbortError('Response line wait aborted'))
 			const pendingWaiter: PendingLineWaiter = {
 				regex,
 				resolve: (line) => {
 					clearTimeout(timer)
+					signal?.removeEventListener('abort', abortHandler)
 					this.pendingLineWaiters = this.pendingLineWaiters.filter((waiter) => waiter !== pendingWaiter)
 					resolve(line)
 				},
 				reject: (error) => {
 					clearTimeout(timer)
+					signal?.removeEventListener('abort', abortHandler)
 					this.pendingLineWaiters = this.pendingLineWaiters.filter((waiter) => waiter !== pendingWaiter)
 					reject(error)
 				},
@@ -157,24 +169,31 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			}
 
 			this.pendingLineWaiters.push(pendingWaiter)
+			signal?.addEventListener('abort', abortHandler, { once: true })
 		})
 	}
 
-	async waitForJson(timeoutMs: number): Promise<unknown> {
+	async waitForJson(timeoutMs: number, signal?: AbortSignal): Promise<unknown> {
+		if (signal?.aborted) {
+			throw createAbortError('JSON response wait aborted')
+		}
+
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
-				this.pendingJsonWaiters = this.pendingJsonWaiters.filter((waiter) => waiter !== pendingWaiter)
-				reject(new Error(`Timed out waiting for a JSON response`))
+				pendingWaiter.reject(new Error('Timed out waiting for a JSON response'))
 			}, timeoutMs)
 
+			const abortHandler = () => pendingWaiter.reject(createAbortError('JSON response wait aborted'))
 			const pendingWaiter: PendingJsonWaiter = {
 				resolve: (value) => {
 					clearTimeout(timer)
+					signal?.removeEventListener('abort', abortHandler)
 					this.pendingJsonWaiters = this.pendingJsonWaiters.filter((waiter) => waiter !== pendingWaiter)
 					resolve(value)
 				},
 				reject: (error) => {
 					clearTimeout(timer)
+					signal?.removeEventListener('abort', abortHandler)
 					this.pendingJsonWaiters = this.pendingJsonWaiters.filter((waiter) => waiter !== pendingWaiter)
 					reject(error)
 				},
@@ -182,6 +201,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			}
 
 			this.pendingJsonWaiters.push(pendingWaiter)
+			signal?.addEventListener('abort', abortHandler, { once: true })
 		})
 	}
 
@@ -291,8 +311,8 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		while (handled) {
 			handled = false
 
-			const usernamePrompt = /^[\s\S]*(?:Username:|username:|AT-OME-PS62 login:)/
-			const passwordPrompt = /^[\s\S]*(?:Password:|password:)/
+			const usernamePrompt = /^[\s\S]*(?:Username:|AT-OME-[\w-]+ login:)/i
+			const passwordPrompt = /^[\s\S]*(?:Password:)/i
 
 			if (usernamePrompt.test(this.receiveBuffer)) {
 				if (this.config.username) {
@@ -333,22 +353,23 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.telnet.send(`${cleanCommand}\r`)
 	}
 
-	sendCommand(command: string): void {
+	sendCommand(command: string): boolean {
 		if (!this.telnet?.isConnected) {
 			this.log('warn', `Cannot send command while disconnected: ${command}`)
-			return
+			return false
 		}
 
 		if (!this.authenticated) {
 			this.log('warn', `Cannot send command before authentication: ${command}`)
-			return
+			return false
 		}
 		const cleanCommand = command.replace(/[\r\n]+$/g, '')
 		if (!cleanCommand) {
-			return
+			return false
 		}
 		this.log('debug', `Sending command: ${cleanCommand}`)
 		this.telnet.send(`${cleanCommand}\r`)
+		return true
 	}
 
 	updateActions(): void {

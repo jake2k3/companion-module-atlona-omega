@@ -20,7 +20,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'info',
 			label: 'Device Configuration',
 			value:
-				'Enter the Atlona device IP address and Telnet port. The default Telnet port is `23`. The login credentials are the same as those used to connect to the Atlona Web UI. The device must have Telnet Login Mode enabled from the Web UI, and must be reachable from the Companion host. If "Telnet Timeout" is enabled, the connection to the Companion Host will expire and must be manually reconnected.',
+				'Enter the Atlona device IP address and Telnet port. The default Telnet port is `23`. Enter the same login credentials used for the Web UI.',
 			width: 12,
 		},
 		{

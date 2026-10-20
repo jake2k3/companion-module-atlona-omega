@@ -28,7 +28,6 @@ async function queryJson(self: ModuleInstance, command: string): Promise<unknown
 
 export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 	try {
-		self.sendCommand('Misc:Model:Get')
 		const modelResult = getResponseResult(await queryJson(self, 'Misc:Model:Get'), 'misc:model:get')
 		if (typeof modelResult.model !== 'string') {
 			throw new Error(`Unexpected model value: ${JSON.stringify(modelResult.model)}`)
@@ -36,7 +35,6 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		const varModel = modelResult.model.replace(/\s+/g, '')
 		self.log('debug', `Device model: ${varModel}`)
 
-		self.sendCommand('Misc:Version:Get')
 		const versionResult = getResponseResult(await queryJson(self, 'Misc:Version:Get'), 'misc:version:get')
 		if (!isJsonObject(versionResult.version) || typeof versionResult.version.master !== 'string') {
 			throw new Error(`Unexpected master version value: ${JSON.stringify(versionResult.version)}`)
@@ -44,7 +42,6 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		const varVersion = versionResult.version.master.replace(/\s+/g, '')
 		self.log('debug', `Firmware version: ${varVersion}`)
 
-		self.sendCommand('GetHostName')
 		const hostnameResult = getResponseResult(await queryJson(self, 'GetHostName'), 'gethostname')
 		if (typeof hostnameResult.hostname !== 'string') {
 			throw new Error(`Unexpected hostname value: ${JSON.stringify(hostnameResult.hostname)}`)
@@ -82,13 +79,15 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		const varInput4State = inputStates[3] ? 'connected' : 'not-connected'
 		const varInput5State = inputStates[4] ? 'connected' : 'not-connected'
 
-		self.sendCommand('Display:Input:Get')
 		const displayInputResult = getResponseResult(await queryJson(self, 'Display:Input:Get'), 'display:input:get')
+		const inputValue = displayInputResult.input
+		const inputIndex =
+			typeof inputValue === 'number' || typeof inputValue === 'string' ? Number(inputValue) : Number.NaN
 		const varRoute =
-			typeof displayInputResult.input === 'number' || typeof displayInputResult.input === 'string'
-				? Number(displayInputResult.input)
-				: NaN
-		if (!Number.isInteger(varRoute) || varRoute < 0 || varRoute > 4) {
+			typeof inputValue === 'string' && inputValue.trim().toLowerCase() === 'unknown'
+				? 'unknown'
+				: String(inputIndex + 1)
+		if (varRoute !== 'unknown' && (!Number.isInteger(inputIndex) || inputIndex < 0 || inputIndex > 4)) {
 			throw new Error(`Unexpected active input: ${displayInputResult.input}`)
 		}
 		const byodType = typeof displayInputResult.type === 'string' ? displayInputResult.type : 'unknown'
@@ -103,8 +102,8 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 			input3Connected: varInput3State,
 			input4Connected: varInput4State,
 			input5Connected: varInput5State,
-			routeOutput1: String(varRoute),
-			routeOutput2: String(varRoute),
+			routeOutput1: varRoute,
+			routeOutput2: varRoute,
 		})
 
 		self.log('info', 'Initial MS52W status query complete, variables updated.')
