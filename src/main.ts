@@ -211,25 +211,6 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 				pendingWaiter.resolve(parsed)
 				return
 			}
-
-			const result = parsed.result
-			const methodreturn =
-				typeof parsed.methodreturn === 'string' ? parsed.methodreturn.replace(/\s+/g, '').toLowerCase() : ''
-			if (methodreturn === 'display:input:get' && result && typeof result === 'object') {
-				const typedResult = result as Record<string, unknown>
-				const input = typedResult.input
-				const type = typedResult.type
-				if (typeof input === 'number' || typeof input === 'string') {
-					const normalizedInput = Number(input)
-					if (Number.isInteger(normalizedInput) && normalizedInput >= 0 && normalizedInput <= 4) {
-						this.setVariableValues({
-							routeOutput0: String(normalizedInput),
-							routeOutput1: String(normalizedInput),
-							byodType: typeof type === 'string' ? type : 'unknown',
-						})
-					}
-				}
-			}
 		} catch (error) {
 			this.log('warn', `Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)}`)
 		}

@@ -2,7 +2,7 @@ import type ModuleInstance from '../main.js'
 // import type { VariablesSchema } from '../variables.js'
 
 export type ActionsSchema = {
-	displayInputSet: { options: { input: '0' | '1' | '2' | '3' | '4' } }
+	displayInputSet: { options: { input: '1' | '2' | '3' | '4' | '5' } }
 	displayMinimalSet: { options: { state: '0' | '1' } }
 
 	// The following actions are "Get Status" commands, only necessary for troubleshooting
@@ -42,8 +42,8 @@ export function UpdateActions(self: ModuleInstance): void {
 						return
 					}
 					self.setVariableValues({
-						routeOutput0: String(input),
 						routeOutput1: String(input),
+						routeOutput2: String(input),
 						byodType: typeof displayInputPayload.result.type === 'string' ? displayInputPayload.result.type : 'unknown',
 					})
 				} catch (err: any) {
@@ -60,13 +60,13 @@ export function UpdateActions(self: ModuleInstance): void {
 					id: 'input',
 					type: 'dropdown',
 					label: 'Input',
-					default: '0',
+					default: '1',
 					choices: [
-						{ id: '0', label: '1 - USB-C' },
-						{ id: '1', label: '2 - DisplayPort' },
-						{ id: '2', label: '3 - HDMI 3' },
-						{ id: '3', label: '4 - HDMI 4' },
-						{ id: '4', label: '5 - BYOD' },
+						{ id: '1', label: '1 - USB-C' },
+						{ id: '2', label: '2 - DisplayPort' },
+						{ id: '3', label: '3 - HDMI 3' },
+						{ id: '4', label: '4 - HDMI 4' },
+						{ id: '5', label: '5 - BYOD' },
 					],
 				},
 			],
@@ -74,23 +74,24 @@ export function UpdateActions(self: ModuleInstance): void {
 				try {
 					const input = action.options.input
 					const names: Record<string, string> = {
-						'0': 'USB-C',
-						'1': 'DisplayPort',
-						'2': 'HDMI 3',
-						'3': 'HDMI 4',
-						'4': 'BYOD',
+						'1': 'USB-C',
+						'2': 'DisplayPort',
+						'3': 'HDMI 3',
+						'4': 'HDMI 4',
+						'5': 'BYOD',
 					}
 
-					if (!/^[0-4]$/.test(input)) {
+					if (!/^[1-5]$/.test(input)) {
 						self.log('warn', `Invalid input selection: ${input}`)
 						return
 					}
 
-					self.log('info', `Routing Input ${Number(input) + 1} (${names[input]}) to HDBaseT and HDMI Outputs`)
-					self.sendCommand(`displayInputSet ${input}`)
+					const inputIndexed = Number(input) - 1
+					self.log('info', `Routing Input ${input} (${names[input]}) to HDBaseT and HDMI Outputs`)
+					self.sendCommand(`Display:Input:Set ${inputIndexed}`)
 					self.setVariableValues({
-						routeOutput0: String(input),
-						routeOutput1: String(input),
+						routeOutput1: String(inputIndexed),
+						routeOutput2: String(inputIndexed),
 					})
 				} catch (err: any) {
 					self.log('error', `Failed to set active input: ${err?.message ?? err}`)
@@ -113,13 +114,13 @@ export function UpdateActions(self: ModuleInstance): void {
 
 					if (status === 'on') {
 						self.log('info', 'Output display is ON.')
-						self.setVariableValues({ output0Status: 'on', output1Status: 'on' })
+						self.setVariableValues({ output1Status: 'on', output2Status: 'on' })
 					} else if (status === 'off') {
 						self.log('info', 'Output display is OFF.')
-						self.setVariableValues({ output0Status: 'off', output1Status: 'off' })
+						self.setVariableValues({ output1Status: 'off', output2Status: 'off' })
 					} else if (status === 'false') {
 						self.log('info', 'Output display is NOT CONNECTED.')
-						self.setVariableValues({ output0Status: 'false', output1Status: 'false' })
+						self.setVariableValues({ output1Status: 'false', output2Status: 'false' })
 					} else {
 						self.log('warn', `Unexpected output display response: ${line}`)
 					}
@@ -151,14 +152,14 @@ export function UpdateActions(self: ModuleInstance): void {
 					if (state === '0') {
 						self.log('info', 'Output display set to OFF')
 						self.sendCommand('Display:Minimal:Set 0')
-						self.setVariableValues({ output0Status: 'off', output1Status: 'off' })
+						self.setVariableValues({ output1Status: 'off', output2Status: 'off' })
 						return
 					}
 
 					if (state === '1') {
 						self.log('info', 'Output display set to ON')
 						self.sendCommand('Display:Minimal:Set 1')
-						self.setVariableValues({ output0Status: 'on', output1Status: 'on' })
+						self.setVariableValues({ output1Status: 'on', output2Status: 'on' })
 						return
 					}
 				} catch (err: any) {
@@ -174,7 +175,7 @@ export function UpdateActions(self: ModuleInstance): void {
 			options: [],
 			callback: async () => {
 				try {
-					self.log('info', 'Querying device for input status')
+					self.log('info', 'Querying device for input connection status')
 					self.sendCommand('getInputStates')
 
 					const line = await (self as any).waitForLine(
@@ -204,18 +205,18 @@ export function UpdateActions(self: ModuleInstance): void {
 						)
 					}
 
-					const input0Connected = inputStates[0] ? 'connected' : 'not-connected'
-					const input1Connected = inputStates[1] ? 'connected' : 'not-connected'
-					const input2Connected = inputStates[2] ? 'connected' : 'not-connected'
-					const input3Connected = inputStates[3] ? 'connected' : 'not-connected'
-					const input4Connected = inputStates[4] ? 'connected' : 'not-connected'
+					const input1Connected = inputStates[0] ? 'connected' : 'not-connected'
+					const input2Connected = inputStates[1] ? 'connected' : 'not-connected'
+					const input3Connected = inputStates[2] ? 'connected' : 'not-connected'
+					const input4Connected = inputStates[3] ? 'connected' : 'not-connected'
+					const input5Connected = inputStates[4] ? 'connected' : 'not-connected'
 
 					self.setVariableValues({
-						input0Connected,
 						input1Connected,
 						input2Connected,
 						input3Connected,
 						input4Connected,
+						input5Connected,
 					})
 
 					self.checkFeedbacks('fbkInputNotConnected')

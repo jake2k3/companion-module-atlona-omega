@@ -35,7 +35,7 @@ export type ActionsSchema = {
 }
 
 export function UpdateActions(self: ModuleInstance): void {
-	self.setActionDefinitions({
+	self.setModelActionDefinitions<ActionsSchema>({
 		blink: {
 			name: 'Blink',
 			description: 'Enables or disables blinking of the POWER LED indicator on the front panel.',

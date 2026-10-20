@@ -52,14 +52,35 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		const hostname = hostnameResult.hostname.replace(/\s+/g, '')
 
 		self.sendCommand('GetInputStates')
-		/*
-		const queryInput = await self.waitForLine(/^InputStates\s*([01]{4})$/i, 3000)
-		const inputMatch = queryInput.match(/^InputStates\s*([01]{4})$/i)
-		if (!inputMatch) {
-			self.log('warn', `Unexpected input status response: ${queryInput}`)
+		const line = await (self as any).waitForLine(
+			/^\[\s*GetInputState\s+[0-4]\s+(?:true|false)(?:\s*,\s*GetInputState\s+[0-4]\s+(?:true|false)){4}\s*\]$/i,
+			3000,
+		)
+		const inputStates: (boolean | undefined)[] = []
+		for (const match of line.matchAll(/GetInputState\s+([0-4])\s+(true|false)/gi)) {
+			const input = Number(match[1])
+			if (inputStates[input] !== undefined) {
+				self.log('warn', `Duplicate input status for input ${input}: ${line}`)
+				return
+			}
+			inputStates[input] = match[2].toLowerCase() === 'true'
+		}
+		if (inputStates.some((state) => state === undefined) || inputStates.length !== 5) {
+			self.log('warn', `Unexpected input status response: ${line}`)
 			return
 		}
-		*/
+
+		const inputNames = ['USB-C', 'DisplayPort', 'HDMI 3', 'HDMI 4', 'BYOD']
+		for (let input = 0; input < inputStates.length; input++) {
+			const connected = inputStates[input]
+			self.log('info', `Input ${input + 1} (${inputNames[input]}) is ${connected ? 'connected.' : 'not connected.'}`)
+		}
+
+		const varInput1State = inputStates[0] ? 'connected' : 'not-connected'
+		const varInput2State = inputStates[1] ? 'connected' : 'not-connected'
+		const varInput3State = inputStates[2] ? 'connected' : 'not-connected'
+		const varInput4State = inputStates[3] ? 'connected' : 'not-connected'
+		const varInput5State = inputStates[4] ? 'connected' : 'not-connected'
 
 		self.sendCommand('Display:Input:Get')
 		const displayInputResult = getResponseResult(await queryJson(self, 'Display:Input:Get'), 'display:input:get')
@@ -77,13 +98,13 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 			deviceVersion: String(varVersion),
 			byodType,
 			hostname,
-			input0Connected: inputMatch[0] === '1' ? 'connected' : 'not-connected',
-			input1Connected: inputMatch[1] === '1' ? 'connected' : 'not-connected',
-			input2Connected: inputMatch[2] === '1' ? 'connected' : 'not-connected',
-			input3Connected: inputMatch[3] === '1' ? 'connected' : 'not-connected',
-			input4Connected: inputMatch[4] === '1' ? 'connected' : 'not-connected',
-			routeOutput0: String(varRoute),
+			input1Connected: varInput1State,
+			input2Connected: varInput2State,
+			input3Connected: varInput3State,
+			input4Connected: varInput4State,
+			input5Connected: varInput5State,
 			routeOutput1: String(varRoute),
+			routeOutput2: String(varRoute),
 		})
 
 		self.log('info', 'Initial MS52W status query complete, variables updated.')

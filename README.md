@@ -13,7 +13,6 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 
 ## Long Term To-Do's
 
-- Create a dropdown to allow selection from multiple OME models (SW-32 for starters), and show/hide actions based on selection
 - Advanced actions/commands
   - IP802.1x
   - IPDHCP
@@ -23,27 +22,6 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 
 ## Branch "models"
 
-- Add telnet authentication prompts and monitor for welcome response for OME-MS52W
-- Add initial test commands for OME-MS52W
-  - [Display:Input:Get]
-  - [Display:Minimal:Get]
-  - [Display:Input:Set]
-  - [Display:Minimal:Set]
-  - [GetInputStates]
-- Add initial variables for OME-MS52W
-  - byodType
-  - deviceModel
-  - deviceVersion
-  - hostname
-  - input0Connected (USB-C)
-  - input1Connected (DisplayPort)
-  - input2Connected (HDMI IN 3)
-  - input3Connected (HDMI IN 4)
-  - input4Connected (BYOD)
-  - output0Status (HDBaseT)
-  - output1Status (HDMI)
-  - routeOutput0
-  - routeOutput1
-- RS232para and status: Console settings are set from command "CSpara" not "RS232paraZ"
+- RS232para and status: Console settings for OME-PS62 are set from command "CSpara" not "RS232paraZ"
 - Add variables for RS232para for Console, HDBT1, HDBT2, HDBTOut
 - Finish actions, variables, feedback, and presets for SW32 and PS62

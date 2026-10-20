@@ -78,6 +78,36 @@ export function UpdatePresets(self: ModuleInstance): void {
 		},
 
 		{
+			id: 'ome-ms52w',
+			name: 'AT-OME-MS52W',
+			definitions: [
+				{
+					id: `displayInputSet`,
+					name: `Set Active Input to Both Outputs`,
+					type: 'template',
+					presetId: 'routeOutputAll-ms52w',
+
+					templateVariableName: 'input',
+					templateValues: [
+						{ name: `Input 1 (USB-C)`, value: '1' },
+						{ name: `Input 2 (DisplayPort)`, value: '2' },
+						{ name: `Input 3 (HDMI 3)`, value: '3' },
+						{ name: `Input 4 (HDMI 4)`, value: '4' },
+						{ name: `Input 5 (BYOD)`, value: '5' },
+					],
+				},
+
+				{
+					id: 'displayMinimalSet',
+					name: 'Set Output Display State',
+					description: 'Sets the state of both output displays to on/off',
+					type: 'simple',
+					presets: ['outputAll-enable', 'outputAll-disable'],
+				},
+			],
+		},
+
+		{
 			id: 'ome-sw32',
 			name: 'AT-OME-SW32',
 			definitions: [
@@ -257,6 +287,38 @@ export function UpdatePresets(self: ModuleInstance): void {
 				variableType: 'simple',
 				variableName: 'output',
 				startupValue: '2',
+			},
+		],
+	}
+
+	presets['routeOutputAll-ms52w'] = {
+		name: `Route Active Input $(local:input) to Both Outputs`,
+		type: 'simple',
+		style: {
+			text: 'Input $(local:input) to Both Outputs',
+			size: '14',
+			color: 0xffffff,
+			bgcolor: 0x000000,
+		},
+		feedbacks: [],
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'displayInputSet',
+						options: {
+							input: { isExpression: true, value: '$(local:input)' },
+						},
+					},
+				],
+				up: [],
+			},
+		],
+		localVariables: [
+			{
+				variableType: 'simple',
+				variableName: 'input',
+				startupValue: 1,
 			},
 		],
 	}
@@ -658,6 +720,52 @@ export function UpdatePresets(self: ModuleInstance): void {
 					{
 						actionId: 'xY$',
 						options: { output: '2', mode: 'off' },
+					},
+				],
+				up: [],
+			},
+		],
+	}
+
+	presets['outputAll-enable'] = {
+		name: 'Enable both HDMI and HDBaseT Outputs',
+		type: 'simple',
+		style: {
+			text: 'Enable Both Outputs',
+			size: '14',
+			color: 0xffffff,
+			bgcolor: 0x000000,
+		},
+		feedbacks: [],
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'displayMinimalSet',
+						options: { state: '1' },
+					},
+				],
+				up: [],
+			},
+		],
+	}
+
+	presets['outputAll-disable'] = {
+		name: 'Disable both HDMI and HDBaseT Outputs',
+		type: 'simple',
+		style: {
+			text: 'Disable Both Outputs',
+			size: '14',
+			color: 0xffffff,
+			bgcolor: 0x000000,
+		},
+		feedbacks: [],
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'displayMinimalSet',
+						options: { state: '0' },
 					},
 				],
 				up: [],
