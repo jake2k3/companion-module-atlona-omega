@@ -22,6 +22,5 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 
 ## Branch "models"
 
-- RS232para and status: Console settings for OME-PS62 are set from command "CSpara" not "RS232paraZ"
-- Add variables for RS232para for Console, HDBT1, HDBT2, HDBTOut
+- Add RS232 Status query to PS62 connection sequence
 - Finish actions, variables, feedback, and presets for SW32 and PS62

@@ -1,6 +1,6 @@
 {
 	"name": "companion-module-atlona-omega",
-	"version": "1.5.10",
+	"version": "1.5.11",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {

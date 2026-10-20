@@ -7,7 +7,7 @@ export type ActionsSchema = {
 	lock: { options: Record<string, never> }
 	RS232para: {
 		options: {
-			port: '1' | '2' | '3'
+			port: 'C' | '1' | '2' | '3'
 			baud: '2400' | '9600' | '19200' | '38400' | '57600' | '115200'
 			dataBits: '7' | '8'
 			parity: '0' | '1' | '2'
@@ -22,7 +22,7 @@ export type ActionsSchema = {
 	// The following actions are "Get Status" commands, only necessary for troubleshooting
 	blink_status: { options: Record<string, never> }
 	power_status: { options: Record<string, never> }
-	RS232para_status: { options: { port: '1' | '2' | '3' } }
+	RS232para_status: { options: { port: 'C' | '1' | '2' | '3' } }
 
 	/*  Advanced Actions to Implement Later...
     IPCFG       Displays IP address configuration
@@ -220,6 +220,7 @@ export function UpdateActions(self: ModuleInstance): void {
 					type: 'dropdown',
 					label: 'Port',
 					choices: [
+						{ id: 'C', label: 'Console' },
 						{ id: '1', label: 'HDBaseT Input 1' },
 						{ id: '2', label: 'HDBaseT Input 2' },
 						{ id: '3', label: 'HDBaseT Output' },
@@ -276,6 +277,7 @@ export function UpdateActions(self: ModuleInstance): void {
 				try {
 					const port = action.options.port
 					const portLabel: Record<string, string> = {
+						C: 'Console',
 						'1': 'HDBaseT Input 1',
 						'2': 'HDBaseT Input 2',
 						'3': 'HDBaseT Output',
@@ -294,7 +296,11 @@ export function UpdateActions(self: ModuleInstance): void {
 						'info',
 						`Setting RS-232 parameters for ${portLabel[port] ?? port}: Baud Rate to ${baud}, Data Bits to ${dataBits}, Parity to ${parityLabel[parityId] ?? parityId}, Stop Bits to ${stopBits}`,
 					)
-					self.sendCommand(`RS232para${port}[${baud},${dataBits},${parity},${stopBits}]`)
+					if (port === 'C') {
+						self.sendCommand(`CSpara[${baud},${dataBits},${parity},${stopBits}]`)
+					} else {
+						self.sendCommand(`RS232para${port}[${baud},${dataBits},${parity},${stopBits}]`)
+					}
 				} catch (err: any) {
 					self.log('error', `Failed to set RS-232 parameters: ${err?.message ?? err}`)
 				}
@@ -311,6 +317,7 @@ export function UpdateActions(self: ModuleInstance): void {
 					type: 'dropdown',
 					label: 'Port',
 					choices: [
+						{ id: 'C', label: 'Console' },
 						{ id: '1', label: 'HDBaseT Input 1' },
 						{ id: '2', label: 'HDBaseT Input 2' },
 						{ id: '3', label: 'HDBaseT Output' },
@@ -321,25 +328,41 @@ export function UpdateActions(self: ModuleInstance): void {
 			callback: async (action) => {
 				try {
 					const port = action.options.port
-					self.log('info', 'Querying device for RS-232 parameter status')
-					self.sendCommand(`RS232para${port} sta`)
-
-					/* 
-
-					const line = await (self as any).waitForLine(/^(PWON|PWOFF)$/i, 3000)
-					const status = line.trim().toUpperCase()
-
-					if (status === 'PWON') {
-						self.log('info', 'Power status: ON')
-						self.setVariableValues({ statusPower: 'on' })
-					} else if (status === 'PWOFF') {
-						self.log('info', 'Power status: OFF')
-						self.setVariableValues({ statusPower: 'off' })
-					} else {
-						self.log('warn', `Unexpected power response: ${line}`)
+					self.log('info', `Querying RS-232 parameters for ${port === 'C' ? 'Console' : `HDBaseT port ${port}`}`)
+					const controller = new AbortController()
+					const responsePromise = self.waitForLine(/^(?:RS232para|CSpara)\[[^\]\r\n]*\]$/i, 3000, controller.signal)
+					const command = port === 'C' ? 'CSpara sta' : `RS232para${port} sta`
+					if (!self.sendCommand(command)) {
+						controller.abort()
+						try {
+							await responsePromise
+						} catch (error) {
+							if (!(error instanceof Error) || error.name !== 'AbortError') throw error
+						}
+						return
 					}
-					
-					*/
+
+					const line = await responsePromise
+					const match = line.match(/^(RS232para|CSpara)\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\]$/i)
+					if (!match) {
+						self.log('warn', `Unexpected RS-232 parameter response: ${line}`)
+						return
+					}
+
+					const isConsoleResponse = match[1].toLowerCase() === 'cspara'
+					if ((port === 'C') !== isConsoleResponse) {
+						self.log('warn', `RS-232 parameter response did not match requested port ${port}: ${line}`)
+						return
+					}
+
+					const responsePort = isConsoleResponse ? 'C' : port
+					const variablePrefix = responsePort === 'C' ? 'rs232console' : `rs232port${responsePort}`
+					self.setVariableValues({
+						[`${variablePrefix}Baud`]: match[2],
+						[`${variablePrefix}DataBits`]: match[3],
+						[`${variablePrefix}Parity`]: match[4],
+						[`${variablePrefix}StopBits`]: match[5],
+					})
 				} catch (err: any) {
 					self.log('error', `Failed to retrieve RS-232 parameters: ${err?.message ?? err}`)
 				}
