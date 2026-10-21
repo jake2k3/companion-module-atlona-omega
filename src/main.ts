@@ -56,7 +56,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	private telnet: TelnetHelper | undefined
 	private receiveBuffer = ''
 	private jsonBuffer = ''
-	private authenticated = false
+	private sessionReady = false
 	private pendingLineWaiters: PendingLineWaiter[] = []
 	private pendingJsonWaiters: PendingJsonWaiter[] = []
 
@@ -104,8 +104,8 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.log('info', `Attempting initial Telnet connection to ${this.config.host}:${this.config.port}`)
 		this.telnet = new TelnetHelper(this.config.host, this.config.port)
 		this.telnet.on('connect', () => {
-			this.authenticated = false
-			this.updateStatus(InstanceStatus.Connecting, 'Connected; awaiting authentication')
+			this.sessionReady = false
+			this.updateStatus(InstanceStatus.Connecting, 'Connected; awaiting session readiness')
 			this.log('info', `Connected to device at ${this.config.host}:${this.config.port}`)
 			this.receiveBuffer = ''
 		})
@@ -125,7 +125,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	private destroyConnection(): void {
 		this.telnet?.destroy()
 		this.telnet = undefined
-		this.authenticated = false
+		this.sessionReady = false
 		this.receiveBuffer = ''
 		this.jsonBuffer = ''
 		for (const waiter of this.pendingLineWaiters) {
@@ -293,12 +293,17 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 				continue
 			}
 
-			const welcomeMessage = ['Welcome to TELNET.', 'Welcome to Telnet!', 'Authentication succeded'] // yes, succeded is misspelled
-			if (welcomeMessage.includes(line)) {
-				if (!this.authenticated) {
-					this.authenticated = true
-					this.updateStatus(InstanceStatus.Ok, 'Authenticated')
-					this.log('info', 'Authenticated successfully')
+			const sessionReadyMessages = [
+				'Welcome to TELNET.',
+				'Welcome to Telnet!',
+				'Welcome to the Atlona Telnet Interface',
+				'Authentication succeded', // yes, succeded is misspelled
+			]
+			if (sessionReadyMessages.some((message) => message.toLowerCase() === line.toLowerCase())) {
+				if (!this.sessionReady) {
+					this.sessionReady = true
+					this.updateStatus(InstanceStatus.Ok, 'Telnet session ready')
+					this.log('info', 'Telnet session ready')
 					void this.queryInitialStatus()
 				}
 				continue
@@ -359,8 +364,8 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			return false
 		}
 
-		if (!this.authenticated) {
-			this.log('warn', `Cannot send command before authentication: ${command}`)
+		if (!this.sessionReady) {
+			this.log('warn', `Cannot send command before the Telnet session is ready: ${command}`)
 			return false
 		}
 		const cleanCommand = command.replace(/[\r\n]+$/g, '')

@@ -202,36 +202,27 @@ export function UpdateActions(self: ModuleInstance): void {
 				try {
 					self.log('info', 'Querying device for input connection status')
 					const controller = new AbortController()
-					const linePromise = self.waitForLine(
-						/^\[\s*GetInputState\s+[0-4]\s+(?:true|false)(?:\s*,\s*GetInputState\s+[0-4]\s+(?:true|false)){4}\s*\]$/i,
-						3000,
-						controller.signal,
-					)
+					const inputStatesPattern =
+						/^\[\s*USB-C\s*:\s*(true|false)\s*,\s*DisplayPort\s*:\s*(true|false)\s*,\s*HDMI 3\s*:\s*(true|false)\s*,\s*HDMI 4\s*:\s*(true|false)\s*,\s*BYOD\s*:\s*(true|false)\s*\]$/i
+					const linePromise = self.waitForLine(inputStatesPattern, 3000, controller.signal)
+
 					if (!self.sendCommand('getInputStates')) {
 						await cancelWait(controller, linePromise)
 						return
 					}
 					const line = await linePromise
-					const inputStates: (boolean | undefined)[] = []
-					for (const match of line.matchAll(/GetInputState\s+([0-4])\s+(true|false)/gi)) {
-						const input = Number(match[1])
-						if (inputStates[input] !== undefined) {
-							self.log('warn', `Duplicate input status for input ${input}: ${line}`)
-							return
-						}
-						inputStates[input] = match[2].toLowerCase() === 'true'
-					}
-					if (inputStates.some((state) => state === undefined) || inputStates.length !== 5) {
+					const inputStateMatch = inputStatesPattern.exec(line)
+					if (!inputStateMatch) {
 						self.log('warn', `Unexpected input status response: ${line}`)
 						return
 					}
-
+					const inputStates = inputStateMatch.slice(1).map((state) => state.toLowerCase() === 'true')
 					const inputNames = ['USB-C', 'DisplayPort', 'HDMI 3', 'HDMI 4', 'BYOD']
+
 					for (let input = 0; input < inputStates.length; input++) {
-						const connected = inputStates[input]
 						self.log(
 							'info',
-							`Input ${input + 1} (${inputNames[input]}) is ${connected ? 'connected.' : 'not connected.'}`,
+							`Input ${input + 1} (${inputNames[input]}) is ${inputStates[input] ? 'connected.' : 'not connected.'}`,
 						)
 					}
 

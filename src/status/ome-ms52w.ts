@@ -28,6 +28,7 @@ async function queryJson(self: ModuleInstance, command: string): Promise<unknown
 
 export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 	try {
+		// Query device model
 		const modelResult = getResponseResult(await queryJson(self, 'Misc:Model:Get'), 'misc:model:get')
 		if (typeof modelResult.model !== 'string') {
 			throw new Error(`Unexpected model value: ${JSON.stringify(modelResult.model)}`)
@@ -35,6 +36,7 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		const varModel = modelResult.model.replace(/\s+/g, '')
 		self.log('debug', `Device model: ${varModel}`)
 
+		// Query device firmware version
 		const versionResult = getResponseResult(await queryJson(self, 'Misc:Version:Get'), 'misc:version:get')
 		if (!isJsonObject(versionResult.version) || typeof versionResult.version.master !== 'string') {
 			throw new Error(`Unexpected master version value: ${JSON.stringify(versionResult.version)}`)
@@ -42,43 +44,38 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		const varVersion = versionResult.version.master.replace(/\s+/g, '')
 		self.log('debug', `Firmware version: ${varVersion}`)
 
+		// Query device hostname
 		const hostnameResult = getResponseResult(await queryJson(self, 'GetHostName'), 'gethostname')
 		if (typeof hostnameResult.hostname !== 'string') {
 			throw new Error(`Unexpected hostname value: ${JSON.stringify(hostnameResult.hostname)}`)
 		}
 		const hostname = hostnameResult.hostname.replace(/\s+/g, '')
 
+		// Query whether inputs are connected/disconnected, return is plain-text, not JSON
+		const inputStatesPattern =
+			/^\[\s*USB-C\s*:\s*(true|false)\s*,\s*DisplayPort\s*:\s*(true|false)\s*,\s*HDMI 3\s*:\s*(true|false)\s*,\s*HDMI 4\s*:\s*(true|false)\s*,\s*BYOD\s*:\s*(true|false)\s*\]$/i
 		self.sendCommand('GetInputStates')
-		const line = await (self as any).waitForLine(
-			/^\[\s*GetInputState\s+[0-4]\s+(?:true|false)(?:\s*,\s*GetInputState\s+[0-4]\s+(?:true|false)){4}\s*\]$/i,
-			3000,
-		)
-		const inputStates: (boolean | undefined)[] = []
-		for (const match of line.matchAll(/GetInputState\s+([0-4])\s+(true|false)/gi)) {
-			const input = Number(match[1])
-			if (inputStates[input] !== undefined) {
-				self.log('warn', `Duplicate input status for input ${input}: ${line}`)
-				return
-			}
-			inputStates[input] = match[2].toLowerCase() === 'true'
-		}
-		if (inputStates.some((state) => state === undefined) || inputStates.length !== 5) {
+		const line = await (self as any).waitForLine(inputStatesPattern, 3000)
+		const inputStateMatch = inputStatesPattern.exec(line)
+		if (!inputStateMatch) {
 			self.log('warn', `Unexpected input status response: ${line}`)
 			return
 		}
-
+		const inputStates = inputStateMatch.slice(1).map((state) => state.toLowerCase() === 'true')
 		const inputNames = ['USB-C', 'DisplayPort', 'HDMI 3', 'HDMI 4', 'BYOD']
-		for (let input = 0; input < inputStates.length; input++) {
-			const connected = inputStates[input]
-			self.log('info', `Input ${input + 1} (${inputNames[input]}) is ${connected ? 'connected.' : 'not connected.'}`)
-		}
-
 		const varInput1State = inputStates[0] ? 'connected' : 'not-connected'
 		const varInput2State = inputStates[1] ? 'connected' : 'not-connected'
 		const varInput3State = inputStates[2] ? 'connected' : 'not-connected'
 		const varInput4State = inputStates[3] ? 'connected' : 'not-connected'
 		const varInput5State = inputStates[4] ? 'connected' : 'not-connected'
+		for (let input = 0; input < inputStates.length; input++) {
+			self.log(
+				'info',
+				`Input ${input + 1} (${inputNames[input]}) is ${inputStates[input] ? 'connected.' : 'not connected.'}`,
+			)
+		}
 
+		// Query active input and BYOD type, if applicable
 		const displayInputResult = getResponseResult(await queryJson(self, 'Display:Input:Get'), 'display:input:get')
 		const inputValue = displayInputResult.input
 		const inputIndex =
@@ -92,6 +89,7 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		}
 		const byodType = typeof displayInputResult.type === 'string' ? displayInputResult.type : 'unknown'
 
+		// Update variables with retrieved values
 		self.setVariableValues({
 			deviceModel: String(varModel),
 			deviceVersion: String(varVersion),
