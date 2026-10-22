@@ -9,8 +9,8 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		const varVersion = await self.waitForLine(/^\d+\.\d+\.\d+$/, 3000)
 
 		self.sendCommand('PWSTA')
-		const powerResponse = await self.waitForLine(/^(PWON|PWOFF)$/i, 3000)
-		const power = powerResponse.trim().toUpperCase() === 'PWON' ? 'on' : 'off'
+		const queryPower = await self.waitForLine(/^(PWON|PWOFF)$/i, 3000)
+		const statusPower = queryPower.trim().toUpperCase() === 'PWON' ? 'on' : 'off'
 
 		self.sendCommand('InputStatus')
 		const inputResponse = await self.waitForLine(/^InputStatus\s*([01]{3})$/i, 3000)
@@ -51,6 +51,7 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		self.setVariableValues({
 			deviceModel: varModel,
 			deviceVersion: varVersion,
+			statusPower,
 			input1Connected: inputMatch[1] === '1' ? 'connected' : 'not-connected',
 			input2Connected: inputMatch[2] === '1' ? 'connected' : 'not-connected',
 			input3Connected: inputMatch[3] === '1' ? 'connected' : 'not-connected',
@@ -61,7 +62,6 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 			statusBlink: blink,
 			statusAudioOutAnalog: analogAudio,
 			statusCommaWait: commaWait,
-			statusPower: power,
 		})
 
 		self.log('info', 'Initial SW32 status query complete, variables updated.')

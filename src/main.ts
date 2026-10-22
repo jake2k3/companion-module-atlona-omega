@@ -57,6 +57,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	private receiveBuffer = ''
 	private jsonBuffer = ''
 	private sessionReady = false
+	private keepaliveTimer: NodeJS.Timeout | undefined
 	private pendingLineWaiters: PendingLineWaiter[] = []
 	private pendingJsonWaiters: PendingJsonWaiter[] = []
 
@@ -104,6 +105,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.log('info', `Attempting initial Telnet connection to ${this.config.host}:${this.config.port}`)
 		this.telnet = new TelnetHelper(this.config.host, this.config.port)
 		this.telnet.on('connect', () => {
+			this.stopKeepalive()
 			this.sessionReady = false
 			this.updateStatus(InstanceStatus.Connecting, 'Connected; awaiting session readiness')
 			this.log('info', `Connected to device at ${this.config.host}:${this.config.port}`)
@@ -113,16 +115,19 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			this.handleData(data)
 		})
 		this.telnet.on('error', (error) => {
+			this.stopKeepalive()
 			this.log('error', `Connection error: ${error.message}`)
 			this.updateStatus(InstanceStatus.ConnectionFailure, error.message)
 		})
 		this.telnet.on('end', () => {
+			this.stopKeepalive()
 			this.log('info', `Connection to device at ${this.config.host}:${this.config.port} closed`)
 			this.updateStatus(InstanceStatus.Disconnected, 'Connection closed')
 		})
 	}
 
 	private destroyConnection(): void {
+		this.stopKeepalive()
 		this.telnet?.destroy()
 		this.telnet = undefined
 		this.sessionReady = false
@@ -302,12 +307,34 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			if (sessionReadyMessages.some((message) => message.toLowerCase() === line.toLowerCase())) {
 				if (!this.sessionReady) {
 					this.sessionReady = true
+					this.startKeepalive()
 					this.updateStatus(InstanceStatus.Ok, 'Telnet session ready')
 					this.log('info', 'Telnet session ready')
 					void this.queryInitialStatus()
 				}
 				continue
 			}
+		}
+	}
+
+	private startKeepalive(): void {
+		this.stopKeepalive()
+		if (!this.config.keepaliveEnabled) {
+			return
+		}
+
+		const intervalMs = (this.config.keepaliveInterval || 90) * 1000
+		this.keepaliveTimer = setInterval(() => {
+			if (this.sessionReady && this.telnet?.isConnected) {
+				this.telnet.send(' ')
+			}
+		}, intervalMs)
+	}
+
+	private stopKeepalive(): void {
+		if (this.keepaliveTimer) {
+			clearInterval(this.keepaliveTimer)
+			this.keepaliveTimer = undefined
 		}
 	}
 

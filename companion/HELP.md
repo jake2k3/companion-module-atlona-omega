@@ -6,7 +6,7 @@ This module lets Bitfocus Companion control supported Atlona Omega devices over 
 
 Enter the Atlona device's IP address and Telnet port. The default Telnet port is `23`. The login credentials are the same as those used to connect to the Atlona Web UI. If you have Telnet Login Mode disabled from the Web UI (not recommended, for obvious reasons) the authentication sequence is bypassed, thus login credentials can be left blank.
 
-If "Telnet Timeout" is enabled, the connection to the Companion Host will expire and must be manually reconnected.
+Optional Telnet keepalive can be enabled in the module configuration. While logged in, the module sends a space at the configured interval (90 seconds by default). Set the interval shorter than the Atlona "Telnet Timeout" to prevent the session from expiring.
 
 ## Actions
 

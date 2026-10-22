@@ -7,6 +7,8 @@ export type ModuleConfig = {
 	host: string
 	port: number
 	username: string
+	keepaliveEnabled: boolean
+	keepaliveInterval: number
 }
 
 export type ModuleSecrets = {
@@ -17,17 +19,17 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 	return [
 		{
 			type: 'static-text',
-			id: 'info',
+			id: 'info-config',
+			width: 12,
 			label: 'Device Configuration',
 			value:
 				'Enter the Atlona device IP address and Telnet port. The default Telnet port is `23`. Enter the same login credentials used for the Web UI.',
-			width: 12,
 		},
 		{
 			type: 'dropdown',
 			id: 'model',
-			label: 'Model',
 			width: 6,
+			label: 'Model',
 			choices: [
 				{ id: 'ome-ms42', label: 'OME-MS42' },
 				{ id: 'ome-ms52w', label: 'OME-MS52W' },
@@ -39,32 +41,56 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		{
 			type: 'textinput',
 			id: 'host',
-			label: 'Target IP',
 			width: 8,
+			label: 'Target IP',
 			regex: Regex.IP,
 		},
 		{
 			type: 'number',
 			id: 'port',
-			label: 'Telnet Port',
 			width: 4,
+			label: 'Telnet Port',
 			min: 1,
 			max: 65535,
 			default: 23,
 		},
 		{
 			type: 'textinput',
+			width: 6,
 			id: 'username',
 			label: 'Username',
-			width: 6,
 			default: 'admin',
 		},
 		{
 			type: 'secret-text',
 			id: 'password',
-			label: 'Password',
 			width: 6,
+			label: 'Password',
 			// default: 'Atlona',
+		},
+		{
+			type: 'static-text',
+			id: 'info-keepalive',
+			width: 12,
+			label: 'Telnet Timeout Keepalive',
+			value:
+				'Some Atlona devices will automatically disconnect Telnet sessions after a period of inactivity. If you are experiencing unexpected disconnections AND do not have an option to disable "Telnet Timeout" from the Web UI, enable this keepalive option and set the period to a value less than the device timeout (Default timeout is 120 seconds).',
+		},
+		{
+			type: 'checkbox',
+			id: 'keepaliveEnabled',
+			width: 6,
+			label: 'Telnet Keepalive',
+			default: false,
+		},
+		{
+			type: 'number',
+			id: 'keepaliveInterval',
+			width: 6,
+			label: 'Period (s)',
+			min: 1,
+			max: 3600,
+			default: 90,
 		},
 	]
 }

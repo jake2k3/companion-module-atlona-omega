@@ -12,8 +12,7 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 
 		self.sendCommand('PWSTA')
 		const queryPower = await self.waitForLine(/^(PWON|PWOFF)$/i, 3000)
-		const replyPower = queryPower.trim().toUpperCase()
-		const varPower = replyPower === 'PWON' ? 'on' : 'off'
+		const statusPower = queryPower.trim().toUpperCase() === 'PWON' ? 'on' : 'off'
 
 		self.sendCommand('InputStatus')
 		const queryInput = await self.waitForLine(/^InputStatus\s*([01]{4})$/i, 3000)
@@ -80,7 +79,6 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 		self.setVariableValues({
 			deviceModel: varModel,
 			deviceVersion: varVersion,
-			statusPower: varPower,
 			input1Connected: inputMatch[1] === '1' ? 'connected' : 'not-connected',
 			input2Connected: inputMatch[2] === '1' ? 'connected' : 'not-connected',
 			input3Connected: inputMatch[3] === '1' ? 'connected' : 'not-connected',
@@ -93,6 +91,7 @@ export async function queryInitialStatus(self: ModuleInstance): Promise<void> {
 			statusAudioOutAnalog: analogAudio,
 			statusAudioOutHDMI,
 			statusAudioOutHDBaseT,
+			statusPower,
 			statusUsbHostLogic,
 			statusUsbHostRoute,
 			statusUsbVbusControl,

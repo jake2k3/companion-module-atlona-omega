@@ -5,26 +5,29 @@ export type VariablesSchema = {
 	input1Connected: string
 	input2Connected: string
 	input3Connected: string
+	input4Connected: string
+	input5Connected: string
+	input6Connected: string
 	output1Enabled: string
 	output2Enabled: string
 	routeOutput1: string
 	routeOutput2: string
-	rs232consoleBaud: string
-	rs232consoleDataBits: string
+	rs232consoleBaud: number
+	rs232consoleDataBits: number
 	rs232consoleParity: string
-	rs232consoleStopBits: string
-	rs232port1Baud: string
-	rs232port1DataBits: string
+	rs232consoleStopBits: number
+	rs232port1Baud: number
+	rs232port1DataBits: number
 	rs232port1Parity: string
-	rs232port1StopBits: string
-	rs232port2Baud: string
-	rs232port2DataBits: string
+	rs232port1StopBits: number
+	rs232port2Baud: number
+	rs232port2DataBits: number
 	rs232port2Parity: string
-	rs232port2StopBits: string
-	rs232port3Baud: string
-	rs232port3DataBits: string
+	rs232port2StopBits: number
+	rs232port3Baud: number
+	rs232port3DataBits: number
 	rs232port3Parity: string
-	rs232port3StopBits: string
+	rs232port3StopBits: number
 	statusAudioOutAnalog: string
 	statusCommaWait: string
 	statusPower: string
@@ -36,6 +39,9 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		input1Connected: { name: 'Input 1 Connection Status' },
 		input2Connected: { name: 'Input 2 Connection Status' },
 		input3Connected: { name: 'Input 3 Connection Status' },
+		input4Connected: { name: 'Input 4 Connection Status' },
+		input5Connected: { name: 'Input 5 Connection Status' },
+		input6Connected: { name: 'Input 6 Connection Status' },
 		output1Enabled: { name: 'Output 1 Enable Status' },
 		output2Enabled: { name: 'Output 2 Enable Status' },
 		routeOutput1: { name: 'Output 1 Route Status' },
