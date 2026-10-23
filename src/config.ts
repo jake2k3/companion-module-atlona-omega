@@ -28,7 +28,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		{
 			type: 'dropdown',
 			id: 'model',
-			width: 6,
+			width: 5,
 			label: 'Model',
 			choices: [
 				{ id: 'ome-ms42', label: 'OME-MS42' },
@@ -41,14 +41,14 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		{
 			type: 'textinput',
 			id: 'host',
-			width: 8,
+			width: 4,
 			label: 'Target IP',
 			regex: Regex.IP,
 		},
 		{
 			type: 'number',
 			id: 'port',
-			width: 4,
+			width: 3,
 			label: 'Telnet Port',
 			min: 1,
 			max: 65535,
@@ -56,7 +56,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		},
 		{
 			type: 'textinput',
-			width: 6,
+			width: 5,
 			id: 'username',
 			label: 'Username',
 			default: 'admin',
@@ -64,29 +64,29 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		{
 			type: 'secret-text',
 			id: 'password',
-			width: 6,
+			width: 7,
 			label: 'Password',
 			// default: 'Atlona',
 		},
 		{
 			type: 'static-text',
 			id: 'info-keepalive',
-			width: 12,
+			width: 6,
 			label: 'Telnet Timeout Keepalive',
 			value:
-				'Some Atlona devices will automatically disconnect Telnet sessions after a period of inactivity. If you are experiencing unexpected disconnections AND do not have an option to disable "Telnet Timeout" from the Web UI, enable this keepalive option and set the period to a value less than the device timeout (Default timeout is 120 seconds).',
+				'Enable this if you do not have an option to disable "Telnet Timeout" from the Atlona Web UI. Set the period to a value less than the device timeout (Default is 120 seconds).',
 		},
 		{
 			type: 'checkbox',
 			id: 'keepaliveEnabled',
-			width: 6,
-			label: 'Telnet Keepalive',
+			width: 3,
+			label: 'Enable Keepalive',
 			default: false,
 		},
 		{
 			type: 'number',
 			id: 'keepaliveInterval',
-			width: 6,
+			width: 3,
 			label: 'Period (s)',
 			min: 1,
 			max: 3600,

@@ -20,6 +20,9 @@ import { queryInitialStatus as queryOmeMs52wStatus } from './status/ome-ms52w.js
 import { queryInitialStatus as queryOmePs62Status } from './status/ome-ps62.js'
 import { queryInitialStatus as queryOmeSw32Status } from './status/ome-sw32.js'
 
+// Debug log for dev build version, see 	private initConnection()
+import { createRequire } from 'node:module'
+
 export type ModuleSchema = {
 	config: ModuleConfig
 	secrets: ModuleSecrets
@@ -63,6 +66,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 	constructor(internal: unknown) {
 		super(internal)
+		this.instanceOptions.disableNewConfigLayout = true
 	}
 
 	async init(config: ModuleConfig, _isFirstInit: boolean, secrets: ModuleSecrets): Promise<void> {
@@ -103,6 +107,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		}
 		this.updateStatus(InstanceStatus.Connecting)
 		this.log('info', `Attempting initial Telnet connection to ${this.config.host}:${this.config.port}`)
+		this.log('debug', `companion-module-atlona-omega v${createRequire(import.meta.url)('../package.json').version}`)
 		this.telnet = new TelnetHelper(this.config.host, this.config.port)
 		this.telnet.on('connect', () => {
 			this.stopKeepalive()
@@ -304,7 +309,11 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 				'Welcome to the Atlona Telnet Interface',
 				'Authentication succeded', // yes, succeded is misspelled
 			]
-			if (sessionReadyMessages.some((message) => message.toLowerCase() === line.toLowerCase())) {
+
+			// removes leading and trailing asterisks and whitespace from welcome banner
+			const stripDecoratedLine = line.replace(/^\*+\s*|\s*\*+$/g, '').trim()
+
+			if (sessionReadyMessages.some((message) => message.toLowerCase() === stripDecoratedLine.toLowerCase())) {
 				if (!this.sessionReady) {
 					this.sessionReady = true
 					this.startKeepalive()
