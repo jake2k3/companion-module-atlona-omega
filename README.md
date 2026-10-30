@@ -10,6 +10,7 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 
 - Define additional feedback for USB Routing, logic, etc
 - Auto-reconnect, auto-status polling (or action Result values, perhaps?)
+- Add note to HELP.md regarding Console Serial RS-232 port and  `Generic: TCP and UDP Requests` module
 
 ## Long Term To-Do's
 
