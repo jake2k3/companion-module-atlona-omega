@@ -22,7 +22,7 @@ export type ActionsSchema = {
 	VOUTMute_status: { options: Record<string, never> }
 
 	/*
-    DispBtn     Sets the command triggered through display control (set in the webGUI)
+    DispBtn     Sends a display control command when Control Type is set to RS-232 or IP (Control type and commands are set in the Web UI)
     Status      Displays the routing state of the unit
     VOUTMute    Mutes/Unmutes audio output volume
     x?$         Mutes/Unmutes AV signals for the specified output channel
